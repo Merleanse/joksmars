@@ -28,17 +28,17 @@
             height: 100vh;
         }
         
-        /* Kustomisasi style untuk Leaflet UI agar konsisten dengan Tailwind */
+        /* Kustomisasi style untuk Leaflet UI */
         .leaflet-control-layers,
-        .leaflet-bar,
-        .leaflet-routing-container {
+        .leaflet-bar {
             border-radius: 0.5rem; /* rounded-lg */
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); /* shadow-md */
             border: none;
         }
         
+        /* Sembunyikan panel instruksi rute, tampilkan hanya garisnya */
         .leaflet-routing-container {
-            background-color: white;
+            display: none;
         }
 
         .leaflet-bar a {
@@ -60,7 +60,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            width: 30px; /* Sedikit lebih lebar untuk konsistensi */
+            width: 30px;
             height: 30px;
             font-size: 1.2rem;
             line-height: 30px;
@@ -75,29 +75,6 @@
             height: 18px;
             fill: #333;
         }
-
-        /* Tombol kustom di dalam popup */
-        .rute-btn {
-            background-color: #3b82f6; /* bg-blue-500 */
-            color: white;
-            padding: 0.25rem 0.75rem; /* py-1 px-3 */
-            border-radius: 0.375rem; /* rounded-md */
-            font-weight: 600; /* font-semibold */
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .rute-btn:hover {
-            background-color: #2563eb; /* bg-blue-600 */
-        }
-        
-        .rute-btn-pendidikan {
-            background-color: #10b981; /* bg-emerald-500 */
-        }
-        .rute-btn-pendidikan:hover {
-            background-color: #059669; /* bg-emerald-600 */
-        }
     </style>
 </head>
 <body class="overflow-hidden">
@@ -107,7 +84,7 @@
         <div class="w-full sm:w-1/3 md:w-1/4 lg:w-1/5 h-full bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto shadow-lg z-10">
             <h1 class="text-xl font-bold text-gray-800 mb-4">WebGIS Fasilitas</h1>
             <p class="text-sm text-gray-600 mb-6">
-                Sistem informasi geografis untuk menampilkan rute terdekat dari titik sampel ke fasilitas kesehatan atau pendidikan.
+                Sistem informasi geografis untuk menampilkan rute terdekat dari titik sampel ke fasilitas terdekat.
             </p>
 
             <!-- Legenda -->
@@ -124,7 +101,22 @@
                         <span class="w-4 h-4 rounded-full bg-emerald-500 mr-2 border border-emerald-700"></span> Fas. Pendidikan
                     </li>
                     <li class="flex items-center">
+                        <span class="w-4 h-4 rounded-full bg-yellow-500 mr-2 border border-yellow-700"></span> Fas. Transportasi
+                    </li>
+                    <li class="flex items-center">
                         <span class="w-4 h-4 bg-gray-300 opacity-70 mr-2 border border-gray-500"></span> Area Administrasi
+                    </li>
+                     <li class="flex items-center">
+                        <span class="w-4 h-1" style="background: #6b7280; opacity: 0.7; margin-right: 0.5rem;"></span> Jaringan Jalan
+                    </li>
+                    <li class="flex items-center">
+                        <span class="w-4 h-1" style="background: #3b82f6; opacity: 0.8; margin-right: 0.5rem;"></span> Rute Kesehatan
+                    </li>
+                    <li class="flex items-center">
+                        <span class="w-4 h-1" style="background: #10b981; opacity: 0.8; margin-right: 0.5rem;"></span> Rute Pendidikan
+                    </li>
+                    <li class="flex items-center">
+                        <span class="w-4 h-1" style="background: #eab308; opacity: 0.8; margin-right: 0.5rem;"></span> Rute Transportasi
                     </li>
                 </ul>
             </div>
@@ -135,7 +127,7 @@
                 <ol class="list-decimal list-inside space-y-1">
                     <li>Gunakan kontrol layer di pojok kanan atas.</li>
                     <li>Klik pada <strong>Titik Sampel</strong> (merah).</li>
-                    <li>Klik tombol "Cari Rute" di popup.</li>
+                    <li>Tiga rute terdekat akan otomatis muncul.</li>
                     <li>Gunakan tombol <strong>Home</strong> (di atas zoom) untuk reset peta.</li>
                 </ol>
             </div>
@@ -155,111 +147,20 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <script>
-        // --- DATA MOCKUP GEOJSON ---
-        // Ganti variabel ini dengan data GeoJSON Anda (bisa juga di-load via fetch)
-        
-        // Data Area Administrasi (Polygon)
-        const adminData = {
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "properties": { "NAMA": "Area Administrasi Contoh" },
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[
-                            [110.30, -7.80],
-                            [110.45, -7.80],
-                            [110.45, -7.90],
-                            [110.30, -7.90],
-                            [110.30, -7.80]
-                        ]]
-                    }
-                }
-            ]
-        };
-
-        // Data Fasilitas Kesehatan (Titik)
-        const fasilitasKesehatanData = {
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "properties": { "NAMA": "RS. Harapan Sehat", "TIPE": "Rumah Sakit" },
-                    "geometry": { "type": "Point", "coordinates": [110.35, -7.83] }
-                },
-                {
-                    "type": "Feature",
-                    "properties": { "NAMA": "Klinik Medika", "TIPE": "Klinik" },
-                    "geometry": { "type": "Point", "coordinates": [110.42, -7.85] }
-                },
-                {
-                    "type": "Feature",
-                    "properties": { "NAMA": "Puskesmas Jaya", "TIPE": "Puskesmas" },
-                    "geometry": { "type": "Point", "coordinates": [110.38, -7.88] }
-                }
-            ]
-        };
-
-        // Data Fasilitas Pendidikan (Titik)
-        const fasilitasPendidikanData = {
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "properties": { "NAMA": "Universitas Belajar", "TIPE": "Universitas" },
-                    "geometry": { "type": "Point", "coordinates": [110.32, -7.82] }
-                },
-                {
-                    "type": "Feature",
-                    "properties": { "NAMA": "SMA Negeri 100", "TIPE": "SMA" },
-                    "geometry": { "type": "Point", "coordinates": [110.40, -7.82] }
-                },
-                {
-                    "type": "Feature",
-                    "properties": { "NAMA": "SDN Pelita", "TIPE": "SD" },
-                    "geometry": { "type": "Point", "coordinates": [110.43, -7.88] }
-                }
-            ]
-        };
-
-        // Data Titik Sampel (Titik)
-        // Properti "tipe" SANGAT PENTING. Ini menentukan rute akan dicari ke mana.
-        const titikSampelData = {
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "properties": { "ID": "S-001", "tipe": "kesehatan" },
-                    "geometry": { "type": "Point", "coordinates": [110.33, -7.85] }
-                },
-                {
-                    "type": "Feature",
-                    "properties": { "ID": "S-002", "tipe": "pendidikan" },
-                    "geometry": { "type": "Point", "coordinates": [110.36, -7.87] }
-                },
-                {
-                    "type": "Feature",
-                    "properties": { "ID": "S-003", "tipe": "kesehatan" },
-                    "geometry": { "type": "Point", "coordinates": [110.41, -7.81] }
-                },
-                {
-                    "type": "Feature",
-                    "properties": { "ID": "S-004", "tipe": "pendidikan" },
-                    "geometry": { "type": "Point", "coordinates": [110.44, -7.86] }
-                }
-            ]
-        };
-
         // --- INISIALISASI PETA LEAFLET ---
         
-        // Simpan view awal
-        const initialCenter = [-7.85, 110.38];
-        const initialZoom = 12;
+        // Simpan view awal (sebagai fallback, kita akan fitBounds ke data admin)
+        const initialCenter = [-7.79, 110.36];
+        const initialZoom = 13;
+        
+        // Variabel global untuk peta dan layer
+        let map;
+        let adminLayer, jalanLayer, fasilitasKesehatanLayer, fasilitasPendidikanLayer, fasilitasTransportasiLayer, sampelLayer;
+        let routingControls = []; // Array untuk menyimpan semua kontrol rute
 
         document.addEventListener('DOMContentLoaded', function () {
             // Inisialisasi Peta
-            const map = L.map('map').setView(initialCenter, initialZoom);
+            map = L.map('map').setView(initialCenter, initialZoom);
 
             // Base Maps
             const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -267,13 +168,8 @@
             }).addTo(map);
 
             const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                attribution: 'Tiles &copy; Esri'
             });
-
-            // Variabel global untuk menyimpan layer
-            let fasilitasKesehatanLayer;
-            let fasilitasPendidikanLayer;
-            let routingControl = null; // Variabel untuk menyimpan kontrol rute
 
             // --- Fungsi untuk membuat Ikon Kustom ---
             function createCustomIcon(color) {
@@ -292,132 +188,173 @@
 
             const iconKesehatan = createCustomIcon('#3b82f6'); // blue-500
             const iconPendidikan = createCustomIcon('#10b981'); // emerald-500
+            const iconTransportasi = createCustomIcon('#eab308'); // yellow-500
             const iconSampel = createCustomIcon('#ef4444'); // red-500
 
-            // --- Memuat Layer GeoJSON ---
+            // --- Fungsi untuk memuat data GeoJSON ---
+            async function loadData() {
+                try {
+                    // Daftar file yang akan di-fetch
+                    // Pastikan file-file ini ada di folder 'Data/' relatif terhadap file HTML
+                    const [adminRes, kesehatanRes, pendidikanRes, transportasiRes, sampelRes, jalanRes] = await Promise.all([
+                        fetch('Data/AdministrasiKelurahan.geojson'),
+                        fetch('Data/Kesehatan.geojson'),
+                        fetch('Data/Pendidikan.geojson'),
+                        fetch('Data/Transportasi.geojson'),
+                        fetch('Data/TitikSampel.geojson'),
+                        fetch('Data/Jalan.geojson') // <-- Tambahkan fetch untuk Jalan.geojson
+                    ]);
 
-            // 1. Area Administrasi
-            const adminLayer = L.geoJSON(adminData, {
-                style: {
-                    color: "#4b5563", // gray-600
-                    weight: 2,
-                    opacity: 0.8,
-                    fillColor: "#d1d5db", // gray-300
-                    fillOpacity: 0.5
-                },
-                onEachFeature: function (feature, layer) {
-                    layer.bindPopup(`<strong>Area:</strong> ${feature.properties.NAMA}`);
+                    // Parse semua data JSON
+                    const data = {
+                        admin: await adminRes.json(),
+                        kesehatan: await kesehatanRes.json(),
+                        pendidikan: await pendidikanRes.json(),
+                        transportasi: await transportasiRes.json(),
+                        sampel: await sampelRes.json(),
+                        jalan: await jalanRes.json() // <-- Tambahkan data jalan ke objek
+                    };
+
+                    // Setelah semua data dimuat, inisialisasi layer peta
+                    initMapLayers(data);
+
+                } catch (error) {
+                    console.error("Gagal memuat data GeoJSON:", error);
+                    alert("Gagal memuat data. Pastikan file GeoJSON ada di folder 'Data/'.");
                 }
-            }).addTo(map);
+            }
 
-            // 2. Fasilitas Kesehatan
-            fasilitasKesehatanLayer = L.geoJSON(fasilitasKesehatanData, {
-                pointToLayer: function (feature, latlng) {
-                    return L.marker(latlng, { icon: iconKesehatan });
-                },
-                onEachFeature: function (feature, layer) {
-                    layer.bindPopup(`<strong>${feature.properties.NAMA}</strong><br>Tipe: ${feature.properties.TIPE}`);
+            // --- Fungsi untuk inisialisasi layer setelah data di-load ---
+            function initMapLayers(data) {
+                
+                // 1. Area Administrasi
+                adminLayer = L.geoJSON(data.admin, {
+                    style: {
+                        color: "#4b5563", weight: 2, opacity: 0.8,
+                        fillColor: "#d1d5db", fillOpacity: 0.5
+                    },
+                    onEachFeature: function (feature, layer) {
+                        layer.bindPopup(`<strong>Kelurahan:</strong> ${feature.properties.NAMOBJ}`);
+                    }
+                }).addTo(map);
+
+                // 2. Jaringan Jalan (BARU)
+                jalanLayer = L.geoJSON(data.jalan, {
+                    style: {
+                        color: "#C11C84", // pink
+                        weight: 2,
+                        opacity: 0.7
+                    },
+                    onEachFeature: function (feature, layer) {
+                        layer.bindPopup(`${feature.properties.NAMOBJ || 'Jalan'}`);
+                    }
+                }).addTo(map);
+
+
+                // 3. Fasilitas Kesehatan
+                fasilitasKesehatanLayer = L.geoJSON(data.kesehatan, {
+                    pointToLayer: (feature, latlng) => L.marker(latlng, { icon: iconKesehatan }),
+                    onEachFeature: (feature, layer) => layer.bindPopup(`<strong>${feature.properties.NAMOBJ}</strong>`)
+                }).addTo(map);
+
+                // 4. Fasilitas Pendidikan
+                fasilitasPendidikanLayer = L.geoJSON(data.pendidikan, {
+                    pointToLayer: (feature, latlng) => L.marker(latlng, { icon: iconPendidikan }),
+                    onEachFeature: (feature, layer) => layer.bindPopup(`<strong>${feature.properties.NAMOBJ}</strong>`)
+                }).addTo(map);
+                
+                // 5. Fasilitas Transportasi
+                fasilitasTransportasiLayer = L.geoJSON(data.transportasi, {
+                    pointToLayer: (feature, latlng) => L.marker(latlng, { icon: iconTransportasi }),
+                    onEachFeature: (feature, layer) => layer.bindPopup(`<strong>${feature.properties.NAMOBJ}</strong>`)
+                }).addTo(map);
+
+                // 6. Titik Sampel (Dengan Logika Rute)
+                sampelLayer = L.geoJSON(data.sampel, {
+                    pointToLayer: (feature, latlng) => {
+                        // Langsung tambahkan event click ke marker
+                        return L.marker(latlng, { icon: iconSampel })
+                            .on('click', () => handleSampelClick(latlng));
+                    }
+                }).addTo(map);
+
+                // --- Kontrol Layer ---
+                const baseMaps = { "OpenStreetMap": osm, "Satelit": satellite };
+                const overlayMaps = {
+                    "Area Administrasi": adminLayer,
+                    "Jaringan Jalan": jalanLayer, // <-- Tambahkan ke kontrol layer
+                    "Fasilitas Kesehatan": fasilitasKesehatanLayer,
+                    "Fasilitas Pendidikan": fasilitasPendidikanLayer,
+                    "Fasilitas Transportasi": fasilitasTransportasiLayer,
+                    "Titik Sampel": sampelLayer
+                };
+                L.control.layers(baseMaps, overlayMaps, { position: 'topright' }).addTo(map);
+
+                // --- Tombol Reset View (Home) KUSTOM ---
+                const ResetControl = L.Control.extend({
+                    options: { position: 'topleft' },
+                    onAdd: function (map) {
+                        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                        const button = L.DomUtil.create('a', 'custom-reset-button', container);
+                        button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg>';
+                        button.href = '#';
+                        button.role = 'button';
+                        button.title = 'Reset View';
+
+                        L.DomEvent.disableClickPropagation(button);
+                        L.DomEvent.on(button, 'click', function (e) {
+                            L.DomEvent.stop(e);
+                            resetRoutes(); // Hapus rute
+                            // Kembalikan view ke data administrasi
+                            if (adminLayer) {
+                                map.fitBounds(adminLayer.getBounds());
+                            } else {
+                                map.setView(initialCenter, initialZoom);
+                            }
+                        });
+                        return container;
+                    }
+                });
+                map.addControl(new ResetControl());
+
+                // Auto-zoom ke data administrasi setelah dimuat
+                if (adminLayer) {
+                    map.fitBounds(adminLayer.getBounds());
                 }
-            }).addTo(map);
-
-            // 3. Fasilitas Pendidikan
-            fasilitasPendidikanLayer = L.geoJSON(fasilitasPendidikanData, {
-                pointToLayer: function (feature, latlng) {
-                    return L.marker(latlng, { icon: iconPendidikan });
-                },
-                onEachFeature: function (feature, layer) {
-                    layer.bindPopup(`<strong>${feature.properties.NAMA}</strong><br>Tipe: ${feature.properties.TIPE}`);
-                }
-            }).addTo(map);
-
-            // 4. Titik Sampel (Dengan Logika Rute)
-            const sampelLayer = L.geoJSON(titikSampelData, {
-                pointToLayer: function (feature, latlng) {
-                    const props = feature.properties;
-                    const isKesehatan = props.tipe === 'kesehatan';
-                    const targetType = isKesehatan ? 'Kesehatan' : 'Pendidikan';
-                    const btnClass = isKesehatan ? 'rute-btn' : 'rute-btn rute-btn-pendidikan';
-
-                    // Buat konten popup dengan tombol
-                    const popupContent = `
-                        <strong>ID Sampel: ${props.ID}</strong><br>
-                        Target: Fasilitas ${targetType}<br><br>
-                        <button class="${btnClass}" 
-                                data-lat="${latlng.lat}" 
-                                data-lng="${latlng.lng}" 
-                                data-tipe="${props.tipe}">
-                            Cari Rute Terdekat
-                        </button>
-                    `;
-                    
-                    return L.marker(latlng, { icon: iconSampel }).bindPopup(popupContent);
-                }
-            }).addTo(map);
-
-            // --- Kontrol Layer ---
-            const baseMaps = {
-                "OpenStreetMap": osm,
-                "Satelit": satellite
-            };
-
-            const overlayMaps = {
-                "Area Administrasi": adminLayer,
-                "Fasilitas Kesehatan": fasilitasKesehatanLayer,
-                "Fasilitas Pendidikan": fasilitasPendidikanLayer,
-                "Titik Sampel": sampelLayer
-            };
-
-            L.control.layers(baseMaps, overlayMaps, { position: 'topright' }).addTo(map);
-
-            // --- TOMBOL RESET VIEW (HOME) KUSTOM ---
-            const ResetControl = L.Control.extend({
-                options: {
-                    position: 'topleft' // Posisi di atas tombol zoom
-                },
-                onAdd: function (map) {
-                    // Buat container
-                    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                    // Buat tombol
-                    const button = L.DomUtil.create('a', 'custom-reset-button', container);
-                    // SVG Ikon Home (Material Design Icon)
-                    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg>';
-                    button.href = '#';
-                    button.role = 'button';
-                    button.title = 'Reset View';
-
-                    // Hentikan propagasi event klik agar tidak 'terklik' ke peta
-                    L.DomEvent.disableClickPropagation(button);
-                    L.DomEvent.on(button, 'click', function (e) {
-                        L.DomEvent.stop(e);
-                        
-                        // 1. Kembalikan view peta
-                        map.setView(initialCenter, initialZoom);
-                        
-                        // 2. Hapus rute jika ada
-                        if (routingControl) {
-                            map.removeControl(routingControl);
-                            routingControl = null;
-                        }
-                    });
-
-                    return container;
-                }
-            });
-            // Tambahkan kontrol kustom ke peta
-            map.addControl(new ResetControl());
-
+            } // Akhir initMapLayers
 
             // --- Logika FUNGSI RUTE ---
             
-            // 1. Fungsi untuk mencari fasilitas terdekat
-            function findClosestFacility(sampleLatLng, tipe) {
-                let targetLayer = (tipe === 'kesehatan') ? fasilitasKesehatanLayer : fasilitasPendidikanLayer;
+            // Fungsi untuk menangani klik pada titik sampel
+            function handleSampelClick(fromLatLng) {
+                // 1. Hapus semua rute sebelumnya
+                resetRoutes();
+
+                // 2. Cari 3 fasilitas terdekat
+                const closestKesehatan = findClosestFacility(fromLatLng, fasilitasKesehatanLayer);
+                const closestPendidikan = findClosestFacility(fromLatLng, fasilitasPendidikanLayer);
+                const closestTransportasi = findClosestFacility(fromLatLng, fasilitasTransportasiLayer);
+
+                // 3. Buat 3 rute baru
+                if (closestKesehatan) {
+                    createRoute(fromLatLng, closestKesehatan.getLatLng(), '#3b82f6'); // biru
+                }
+                if (closestPendidikan) {
+                    createRoute(fromLatLng, closestPendidikan.getLatLng(), '#10b981'); // hijau
+                }
+                if (closestTransportasi) {
+                    createRoute(fromLatLng, closestTransportasi.getLatLng(), '#eab308'); // kuning
+                }
+            }
+
+            // Fungsi untuk mencari fasilitas terdekat di sebuah layer
+            function findClosestFacility(sampleLatLng, targetLayer) {
                 let minDistance = Infinity;
                 let closestFacility = null;
 
                 targetLayer.eachLayer(function(layer) {
                     const facilityLatLng = layer.getLatLng();
-                    const distance = sampleLatLng.distanceTo(facilityLatLng); // Jarak garis lurus
+                    const distance = sampleLatLng.distanceTo(facilityLatLng);
                     
                     if (distance < minDistance) {
                         minDistance = distance;
@@ -428,71 +365,39 @@
                 return closestFacility; // Mengembalikan layer marker fasilitas
             }
 
-            // 2. Fungsi untuk membuat rute
-            function createRoute(fromLatLng, toLatLng) {
-                // Hapus rute sebelumnya jika ada
-                if (routingControl) {
-                    map.removeControl(routingControl);
-                }
-
-                // Buat rute baru
-                routingControl = L.Routing.control({
+            // Fungsi untuk membuat rute (tanpa panel instruksi)
+            function createRoute(fromLatLng, toLatLng, color) {
+                const routeControl = L.Routing.control({
                     waypoints: [
                         fromLatLng,
                         toLatLng
                     ],
-                    routeWhileDragging: false,
+                    show: false, // <-- PENTING: Sembunyikan panel instruksi
                     addWaypoints: false,
                     draggableWaypoints: false,
-                    show: true, // Tampilkan panel instruksi rute
-                    fitSelectedRoutes: true,
+                    fitSelectedRoutes: false,
                     lineOptions: {
-                        styles: [{ color: '#2563eb', opacity: 0.8, weight: 6 }]
+                        styles: [{ color: color, opacity: 0.8, weight: 6 }]
                     },
-                    // Menggunakan OSRM demo server
                     serviceUrl: 'https://router.project-osrm.org/route/v1' 
                 }).addTo(map);
+                
+                // Simpan referensi ke kontrol rute agar bisa dihapus
+                routingControls.push(routeControl);
             }
 
-            // 3. Event listener pada map untuk menangani klik tombol di popup (Event Delegation)
-            map.on('popupopen', function (e) {
-                const btn = e.popup._container.querySelector('.rute-btn');
-                if (btn) {
-                    btn.addEventListener('click', function () {
-                        const lat = this.dataset.lat;
-                        const lng = this.dataset.lng;
-                        const tipe = this.dataset.tipe;
-
-                        const fromLatLng = L.latLng(lat, lng);
-                        
-                        // Cari fasilitas terdekat
-                        const closest = findClosestFacility(fromLatLng, tipe);
-                        
-                        if (closest) {
-                            const toLatLng = closest.getLatLng();
-                            
-                            // Buat rute
-                            createRoute(fromLatLng, toLatLng);
-                            
-                            // Tutup popup
-                            map.closePopup();
-                            
-                            // Info di console
-                            console.log(`Rute dibuat dari [${lat}, ${lng}] ke fasilitas terdekat di [${toLatLng.lat}, ${toLatLng.lng}]`);
-                            console.log(closest.feature.properties);
-
-                        } else {
-                            console.error("Tidak ada fasilitas yang ditemukan untuk tipe: " + tipe);
-                            // Gunakan modal kustom, tapi untuk sekarang kita kembalikan alert
-                            // agar pengguna tahu ada masalah.
-                            alert("Maaf, tidak ada fasilitas yang ditemukan.");
-                        }
-                    });
+            // Fungsi untuk menghapus semua rute dari peta
+            function resetRoutes() {
+                for (const control of routingControls) {
+                    map.removeControl(control);
                 }
-            });
+                routingControls = []; // Kosongkan array
+            }
+            
+            // --- Mulai aplikasi dengan memuat data ---
+            loadData();
 
         }); // Akhir DOMContentLoaded
     </script>
 </body>
 </html>
-

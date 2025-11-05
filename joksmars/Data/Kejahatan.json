@@ -1,0 +1,42 @@
+[
+ {
+  "Column2": "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan"
+ },
+ {
+  "Column2": 2024
+ },
+ {
+  "Kepolisian": "1. Sektor Laweyan",
+  "Column2": 1,
+  "Column3": 88.6
+ },
+ {
+  "Kepolisian": "2. Sektor Serengan",
+  "Column2": 4,
+  "Column3": 91.6
+ },
+ {
+  "Kepolisian": "3. Sektor Pasar Kliwon",
+  "Column2": 11,
+  "Column3": 98.6
+ },
+ {
+  "Kepolisian": "4. Sektor Jebres",
+  "Column2": 16,
+  "Column3": 103.6
+ },
+ {
+  "Kepolisian": "5. Sektor Banjarsari",
+  "Column2": 11,
+  "Column3": 98.6
+ },
+ {
+  "Kepolisian": "6. Resor Surakarta",
+  "Column2": 438
+ },
+ {
+  "Kepolisian": "Kota Surakarta",
+  "Column2": 481,
+  "Column3": 481
+ }
+]
