@@ -1,0 +1,27 @@
+[
+ {
+  "FID": 1,
+  "Daerah Kepolisian": "Sektor Laweyan",
+  "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan": 1
+ },
+ {
+  "FID": 2,
+  "Daerah Kepolisian": "Sektor Serengan",
+  "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan": 4
+ },
+ {
+  "FID": 3,
+  "Daerah Kepolisian": "Sektor Pasar Kliwon",
+  "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan": 11
+ },
+ {
+  "FID": 4,
+  "Daerah Kepolisian": "Sektor Jebres",
+  "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan": 16
+ },
+ {
+  "FID": 5,
+  "Daerah Kepolisian": "Sektor Banjasari",
+  "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan": 11
+ }
+]
