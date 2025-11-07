@@ -248,7 +248,7 @@
                         jalanRes,
                         nilaiTanahRes, 
                         kejahatanRes, 
-                        suhuRes       
+                        suhuRes     
                     ] = await Promise.all([
                         fetch('Data/AdministrasiKelurahan.geojson'),
                         fetch('Data/Kesehatan.geojson'),
@@ -258,7 +258,7 @@
                         fetch('Data/Jalan.geojson'),
                         fetch('Data/NilaiTanah.geojson'), 
                         fetch('Data/Kejahatan.json'), 
-                        fetch('Data/Suhu.json')       
+                        fetch('Data/Suhu.json')     
                     ]);
 
                     // BARU: Cek jika ada fetch yang gagal
@@ -280,7 +280,7 @@
                             jalan: await jalanRes.json(),
                             nilaiTanah: await nilaiTanahRes.json(),
                             kejahatan: await kejahatanRes.json(), 
-                            suhu: await suhuRes.json()            
+                            suhu: await suhuRes.json()          
                         };
                     } catch (parseError) {
                         console.error("Gagal mem-parsing JSON:", parseError);
@@ -319,6 +319,7 @@
                 const colors = ['#f5f3ff', '#d8b4fe', '#a78bfa', '#8b5cf6', '#6d28d9']; // Tailwind violet 50, 300, 400, 500, 700
                 let breaks = [100000, 500000, 1000000, 2000000]; // Default breaks jika kalkulasi gagal
 
+                
                 if (nilaiTanahValues.length > 0) {
                     const minVal = Math.min(...nilaiTanahValues);
                     const maxVal = Math.max(...nilaiTanahValues);
@@ -370,19 +371,38 @@
                 // 3. Fasilitas Kesehatan
                 fasilitasKesehatanLayer = L.geoJSON(data.kesehatan, {
                     pointToLayer: (f, latlng) => L.marker(latlng, { icon: iconKesehatan }),
-                    onEachFeature: (f, layer) => layer.bindPopup(`<strong>${f.properties.NAMOBJ}</strong>`)
+                    // --- KODE DIUBAH UNTUK MENAMBAHKAN KETERANGAN ---
+                    onEachFeature: (f, layer) => {
+                        const nama = f.properties.NAMOBJ || "Nama Fasilitas";
+                        const ket = f.properties.Keterangan || ""; // Ambil 'Keterangan'
+                        // Tampilkan nama dan keterangan (jika ada)
+                        layer.bindPopup(`<strong>${nama}</strong><br>${ket}`);
+                    }
+                    // --- AKHIR PERUBAHAN ---
                 }).addTo(map);
 
-                // 4. Fasilitas Pendidikan (PERBAIKAN: Ditambahkan kembali)
+                // 4. Fasilitas Pendidikan
                 fasilitasPendidikanLayer = L.geoJSON(data.pendidikan, {
                     pointToLayer: (f, latlng) => L.marker(latlng, { icon: iconPendidikan }),
-                    onEachFeature: (f, layer) => layer.bindPopup(`<strong>${f.properties.NAMOBJ}</strong>`)
+                    // --- KODE DIUBAH UNTUK MENAMBAHKAN KETERANGAN ---
+                    onEachFeature: (f, layer) => {
+                        const nama = f.properties.NAMOBJ || "Nama Fasilitas";
+                        const ket = f.properties.Keterangan || ""; // Ambil 'Keterangan'
+                        layer.bindPopup(`<strong>${nama}</strong><br>${ket}`);
+                    }
+                    // --- AKHIR PERUBAHAN ---
                 }).addTo(map);
                 
-                // 5. Fasilitas Transportasi (PERBAIKAN: Ditambahkan kembali)
+                // 5. Fasilitas Transportasi
                 fasilitasTransportasiLayer = L.geoJSON(data.transportasi, {
                     pointToLayer: (f, latlng) => L.marker(latlng, { icon: iconTransportasi }),
-                    onEachFeature: (f, layer) => layer.bindPopup(`<strong>${f.properties.NAMOBJ}</strong>`)
+                    // --- KODE DIUBAH UNTUK MENAMBAHKAN KETERANGAN ---
+                    onEachFeature: (f, layer) => {
+                        const nama = f.properties.NAMOBJ || "Nama Fasilitas";
+                        const ket = f.properties.Keterangan || ""; // Ambil 'Keterangan'
+                        layer.bindPopup(`<strong>${nama}</strong><br>${ket}`);
+                    }
+                    // --- AKHIR PERUBAHAN ---
                 }).addTo(map);
 
                 // 6. Titik Sampel (Dengan Logika Rute)
