@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peta Interaktif xxx</title>
+    <title>Peta Interaktif WebGIS</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -220,7 +220,7 @@
                         sampelRes, 
                         jalanRes,
                         kejahatanRes, // <-- BARU
-                        suhuRes         // <-- BARU
+                        suhuRes       // <-- BARU
                     ] = await Promise.all([
                         fetch('Data/AdministrasiKelurahan.geojson'),
                         fetch('Data/Kesehatan.geojson'),
@@ -229,7 +229,7 @@
                         fetch('Data/TitikSampel.geojson'),
                         fetch('Data/Jalan.geojson'),
                         fetch('Data/Kejahatan.json'), // <-- BARU
-                        fetch('Data/Suhu.json')         // <-- BARU
+                        fetch('Data/Suhu.json')       // <-- BARU
                     ]);
 
                     // Parse semua data JSON
@@ -241,7 +241,7 @@
                         sampel: await sampelRes.json(),
                         jalan: await jalanRes.json(),
                         kejahatan: await kejahatanRes.json(), // <-- BARU
-                        suhu: await suhuRes.json()             // <-- BARU
+                        suhu: await suhuRes.json()            // <-- BARU
                     };
 
                     // Setelah semua data dimuat, inisialisasi layer peta dan chart
@@ -327,26 +327,26 @@
                         });
                         return container;
                     }
-                }); // <-- PERBAIKAN: Menambahkan brace penutup
-                map.addControl(new ResetControl()); // <-- PERBAIKAN: Menambahkan baris ini
+                });
+                map.addControl(new ResetControl());
 
                 // Auto-zoom ke data administrasi
-                if (adminLayer) { // <-- PERBAIKAN: Menambahkan blok ini
+                if (adminLayer) {
                     map.fitBounds(adminLayer.getBounds());
                 }
                 
                 // --- INISIALISASI CHART (BARU) ---
                 // Pastikan data ada sebelum inisialisasi
-                if (data.kejahatan) { // <-- PERBAIKAN: Menambahkan blok ini
+                if (data.kejahatan) {
                     initChartKejahatan(data.kejahatan);
                 }
-                if (data.suhu) { // <-- PERBAIKAN: Menambahkan blok ini
+                if (data.suhu) {
                     initChartSuhu(data.suhu);
                 }
                 
-            } // <-- PERBAIKAN: Menambahkan brace penutup untuk initMapLayers
+            } // Akhir initMapLayers
 
-            <!-- --- FUNGSI CHART BARU (DIPERBAIKI) ---
+            /* --- FUNGSI CHART BARU (DIPERBAIKI) --- */
             
             /**
              * Inisialisasi Chart Kejahatan (Bar Chart)
@@ -373,17 +373,17 @@
                 }
 
                 // Ekstrak label (Kecamatan) dan data (Jumlah) dari array
-                const labels = chartArray.map(item => item.Kecamatan);
-                const chartData = chartArray.map(item => item.Jumlah_Kejahatan_2024);
+                const labels = chartArray.map(item => item["Daerah Kepolisian"]); // <-- Ini sudah benar
+                const chartData = chartArray.map(item => item["Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan"]); // <-- DIPERBAIKI: Menggunakan nama kolom yang lengkap
 
                 const ctx = document.getElementById('chartKejahatan').getContext('2d');
                 new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: labels, // <-- DIPERBAIKI
+                        labels: labels, 
                         datasets: [{
-                            label: 'Jumlah Laporan 2024',
-                            data: chartData, // <-- DIPERBAIKI
+                            label: 'Jumlah Kejahatan Dilaporkan', // <-- Diperbarui
+                            data: chartData, 
                             backgroundColor: 'rgba(239, 68, 68, 0.6)', // Merah
                             borderColor: 'rgba(239, 68, 68, 1)',
                             borderWidth: 1
@@ -430,16 +430,16 @@
 
                 // Ekstrak label (Bulan) dan data (Suhu) dari array
                 const labels = chartArray.map(item => item.Bulan);
-                const chartData = chartArray.map(item => item.Suhu_Rata2_2024);
+                const chartData = chartArray.map(item => item["Suhu Rata Rata"]); // <-- DIPERBAIKI: Menggunakan "Suhu Rata Rata" sesuai JSON
                 
                 const ctx = document.getElementById('chartSuhu').getContext('2d');
                 new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: labels, // <-- DIPERBAIKI
+                        labels: labels,
                         datasets: [{
                             label: 'Suhu Rata-rata (°C) 2024',
-                            data: chartData, // <-- DIPERBAIKI
+                            data: chartData,
                             backgroundColor: 'rgba(59, 130, 246, 0.2)', // Biru
                             borderColor: 'rgba(59, 130, 246, 1)',
                             borderWidth: 2,
