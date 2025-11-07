@@ -78,6 +78,14 @@
             height: 18px;
             fill: #333;
         }
+
+        /* BARU: Style untuk Legenda Nilai Tanah */
+        #legenda-nilai-tanah .legend-color-box {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.5rem;
+            border: 1px solid #9ca3af; /* gray-400 */
+        }
     </style>
 </head>
 <body class="overflow-hidden">
@@ -109,7 +117,12 @@
                     <li class="flex items-center">
                         <span class="w-4 h-4 bg-gray-300 opacity-70 mr-2 border border-gray-500"></span> Area Administrasi
                     </li>
-                     <li class="flex items-center">
+                    <!-- Placeholder Legenda Nilai Tanah (DIPERBARUI) -->
+                    <div id="legenda-nilai-tanah" class="mt-2">
+                         <h3 class="text-sm font-semibold text-gray-600 mb-1">Nilai Tanah (per m²)</h3>
+                         <!-- Konten akan diisi oleh JavaScript -->
+                    </div>
+                     <li class="flex items-center mt-2"> <!-- Ditambahkan mt-2 -->
                         <span class="w-4 h-1" style="background: #6b7280; opacity: 0.7; margin-right: 0.5rem;"></span> Jaringan Jalan
                     </li>
                     <li class="flex items-center">
@@ -142,12 +155,11 @@
 
             <!-- Informasi -->
             <div class="text-xs text-gray-500">
-                <h3 class="font-semibold mb-2">Cara Penggunaan:</h3>
+                <h3 class="font-semibold mb-2">Peta ini dibuat oleh:</h3>
                 <ol class="list-decimal list-inside space-y-1">
-                    <li>Gunakan kontrol layer di pojok kanan atas.</li>
-                    <li>Klik pada <strong>Titik Sampel</strong> (merah).</li>
-                    <li>Tiga rute terdekat akan otomatis muncul.</li>
-                    <li>Gunakan tombol <strong>Home</strong> (di atas zoom) untuk reset peta.</li>
+                    <li><strong>Zuniarni Kusuma Dewi</strong> - 5016221007</li>
+                    <li><strong>Fadillatus Syifa'</strong> - 5016221039</li>
+                    <li><strong>Marsa Aulia Fasya</strong> - 5016221123</li>
                 </ol>
             </div>
             
@@ -173,6 +185,7 @@
         
         let map;
         let adminLayer, jalanLayer, fasilitasKesehatanLayer, fasilitasPendidikanLayer, fasilitasTransportasiLayer, sampelLayer;
+        let nilaiTanahLayer; // <-- BARU
         let routingControls = []; 
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -187,6 +200,19 @@
             const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 attribution: 'Tiles &copy; Esri'
             });
+
+            // --- Fungsi untuk memformat Rupiah (BARU) ---
+            function formatRupiah(angka) {
+                if (angka === null || isNaN(angka)) {
+                    return "Data tidak tersedia";
+                }
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(angka);
+            }
 
             // --- Fungsi untuk membuat Ikon Kustom ---
             function createCustomIcon(color) {
@@ -210,17 +236,19 @@
 
             // --- Fungsi untuk memuat data GeoJSON ---
             async function loadData() {
+                let adminRes, kesehatanRes, pendidikanRes, transportasiRes, sampelRes, jalanRes, nilaiTanahRes, kejahatanRes, suhuRes;
                 try {
                     // Daftar file yang akan di-fetch
-                    const [
+                    [
                         adminRes, 
                         kesehatanRes, 
                         pendidikanRes, 
                         transportasiRes, 
                         sampelRes, 
                         jalanRes,
-                        kejahatanRes, // <-- BARU
-                        suhuRes       // <-- BARU
+                        nilaiTanahRes, 
+                        kejahatanRes, 
+                        suhuRes       
                     ] = await Promise.all([
                         fetch('Data/AdministrasiKelurahan.geojson'),
                         fetch('Data/Kesehatan.geojson'),
@@ -228,28 +256,45 @@
                         fetch('Data/Transportasi.geojson'),
                         fetch('Data/TitikSampel.geojson'),
                         fetch('Data/Jalan.geojson'),
-                        fetch('Data/Kejahatan.json'), // <-- BARU
-                        fetch('Data/Suhu.json')       // <-- BARU
+                        fetch('Data/NilaiTanah.geojson'), 
+                        fetch('Data/Kejahatan.json'), 
+                        fetch('Data/Suhu.json')       
                     ]);
 
+                    // BARU: Cek jika ada fetch yang gagal
+                    const responses = [adminRes, kesehatanRes, pendidikanRes, transportasiRes, sampelRes, jalanRes, nilaiTanahRes, kejahatanRes, suhuRes];
+                    const failedResponse = responses.find(res => !res.ok);
+                    if (failedResponse) {
+                        throw new Error(`Gagal memuat file: ${failedResponse.url} (Status: ${failedResponse.status})`);
+                    }
+
                     // Parse semua data JSON
-                    const data = {
-                        admin: await adminRes.json(),
-                        kesehatan: await kesehatanRes.json(),
-                        pendidikan: await pendidikanRes.json(),
-                        transportasi: await transportasiRes.json(),
-                        sampel: await sampelRes.json(),
-                        jalan: await jalanRes.json(),
-                        kejahatan: await kejahatanRes.json(), // <-- BARU
-                        suhu: await suhuRes.json()            // <-- BARU
-                    };
+                    let data;
+                    try {
+                        data = {
+                            admin: await adminRes.json(),
+                            kesehatan: await kesehatanRes.json(),
+                            pendidikan: await pendidikanRes.json(),
+                            transportasi: await transportasiRes.json(),
+                            sampel: await sampelRes.json(),
+                            jalan: await jalanRes.json(),
+                            nilaiTanah: await nilaiTanahRes.json(),
+                            kejahatan: await kejahatanRes.json(), 
+                            suhu: await suhuRes.json()            
+                        };
+                    } catch (parseError) {
+                        console.error("Gagal mem-parsing JSON:", parseError);
+                        throw new Error(`Gagal mem-parsing file JSON. Cek konsol untuk detail. Error: ${parseError.message}`);
+                    }
+
 
                     // Setelah semua data dimuat, inisialisasi layer peta dan chart
                     initMapLayers(data);
 
                 } catch (error) {
                     console.error("Gagal memuat data GeoJSON/JSON:", error);
-                    alert("Gagal memuat data. Pastikan semua file data ada di folder 'Data/'.");
+                    // BARU: Tampilkan error yang lebih spesifik
+                    alert(`Gagal memuat data. Pesan: "${error.message}". Pastikan semua file data ada di folder 'Data/' dan formatnya benar.`);
                 }
             }
 
@@ -265,7 +310,58 @@
                     onEachFeature: (feature, layer) => layer.bindPopup(`<strong>Kelurahan:</strong> ${feature.properties.NAMOBJ}`)
                 }).addTo(map);
 
-                // 2. Jaringan Jalan
+                // --- Kalkulasi Klasifikasi Nilai Tanah (BARU) ---
+                const nilaiTanahValues = data.nilaiTanah.features
+                    .map(f => f.properties.PREDICTED)
+                    .filter(v => v !== null && !isNaN(v) && v > 0);
+                
+                // 5 Kelas Warna (gradasi ungu)
+                const colors = ['#f5f3ff', '#d8b4fe', '#a78bfa', '#8b5cf6', '#6d28d9']; // Tailwind violet 50, 300, 400, 500, 700
+                let breaks = [100000, 500000, 1000000, 2000000]; // Default breaks jika kalkulasi gagal
+
+                if (nilaiTanahValues.length > 0) {
+                    const minVal = Math.min(...nilaiTanahValues);
+                    const maxVal = Math.max(...nilaiTanahValues);
+                    const range = maxVal - minVal;
+                    // Buat 4 breaks (5 kelas) menggunakan equal interval
+                    breaks = [
+                        minVal + range * 0.2,
+                        minVal + range * 0.4,
+                        minVal + range * 0.6,
+                        minVal + range * 0.8
+                    ];
+                }
+
+                // Fungsi untuk mendapatkan warna berdasarkan nilai
+                function getNilaiTanahColor(value) {
+                    if (value === null || isNaN(value) || value <= 0) return '#9ca3af'; // gray-400
+                    if (value <= breaks[0]) return colors[0];
+                    if (value <= breaks[1]) return colors[1];
+                    if (value <= breaks[2]) return colors[2];
+                    if (value <= breaks[3]) return colors[3];
+                    return colors[4];
+                }
+
+                // 2. Nilai Tanah (DIPERBARUI)
+                nilaiTanahLayer = L.geoJSON(data.nilaiTanah, {
+                    style: function(feature) { // Diubah ke fungsi
+                        const value = feature.properties.PREDICTED;
+                        return {
+                            fillColor: getNilaiTanahColor(value), // Panggil fungsi warna
+                            color: "#4b5563", // Batas abu-abu gelap
+                            weight: 0.5,
+                            opacity: 0.8,
+                            fillOpacity: 0.7
+                        };
+                    },
+                    onEachFeature: (feature, layer) => {
+                        const hargaPrediksi = feature.properties.PREDICTED;
+                        const hargaFormatted = formatRupiah(hargaPrediksi);
+                        layer.bindPopup(`<strong>Prediksi Nilai Tanah:</strong><br>${hargaFormatted} / m²`);
+                    }
+                }).addTo(map); // Ditambahkan ke peta setelah admin
+
+                // 3. Jaringan Jalan
                 jalanLayer = L.geoJSON(data.jalan, {
                     style: { color: "#C11C84", weight: 2, opacity: 0.7 },
                     onEachFeature: (feature, layer) => layer.bindPopup(`${feature.properties.NAMOBJ || 'Jalan'}`)
@@ -277,13 +373,13 @@
                     onEachFeature: (f, layer) => layer.bindPopup(`<strong>${f.properties.NAMOBJ}</strong>`)
                 }).addTo(map);
 
-                // 4. Fasilitas Pendidikan
+                // 4. Fasilitas Pendidikan (PERBAIKAN: Ditambahkan kembali)
                 fasilitasPendidikanLayer = L.geoJSON(data.pendidikan, {
                     pointToLayer: (f, latlng) => L.marker(latlng, { icon: iconPendidikan }),
                     onEachFeature: (f, layer) => layer.bindPopup(`<strong>${f.properties.NAMOBJ}</strong>`)
                 }).addTo(map);
                 
-                // 5. Fasilitas Transportasi
+                // 5. Fasilitas Transportasi (PERBAIKAN: Ditambahkan kembali)
                 fasilitasTransportasiLayer = L.geoJSON(data.transportasi, {
                     pointToLayer: (f, latlng) => L.marker(latlng, { icon: iconTransportasi }),
                     onEachFeature: (f, layer) => layer.bindPopup(`<strong>${f.properties.NAMOBJ}</strong>`)
@@ -299,6 +395,7 @@
                 const baseMaps = { "OpenStreetMap": osm, "Satelit": satellite };
                 const overlayMaps = {
                     "Area Administrasi": adminLayer,
+                    "Zona Nilai Tanah": nilaiTanahLayer, // <-- BARU
                     "Jaringan Jalan": jalanLayer,
                     "Fasilitas Kesehatan": fasilitasKesehatanLayer,
                     "Fasilitas Pendidikan": fasilitasPendidikanLayer,
@@ -334,6 +431,21 @@
                 if (adminLayer) {
                     map.fitBounds(adminLayer.getBounds());
                 }
+
+                // --- Buat Legenda Nilai Tanah Dinamis (BARU) ---
+                const legendaContainer = document.getElementById('legenda-nilai-tanah');
+                let legendaHtml = '';
+                
+                // Kelas 1
+                legendaHtml += `<li class="flex items-center text-xs"><span class="legend-color-box" style="background-color: ${colors[0]};"></span> &le; ${formatRupiah(breaks[0])}</li>`;
+                // Kelas 2-4
+                for (let i = 0; i < breaks.length - 1; i++) {
+                    legendaHtml += `<li class="flex items-center text-xs"><span class="legend-color-box" style="background-color: ${colors[i+1]};"></span> ${formatRupiah(breaks[i])} - ${formatRupiah(breaks[i+1])}</li>`;
+                }
+                // Kelas 5
+                legendaHtml += `<li class="flex items-center text-xs"><span class="legend-color-box" style="background-color: ${colors[4]};"></span> &gt; ${formatRupiah(breaks[3])}</li>`;
+                
+                legendaContainer.innerHTML += `<ul class="space-y-1">${legendaHtml}</ul>`;
                 
                 // --- INISIALISASI CHART (BARU) ---
                 // Pastikan data ada sebelum inisialisasi
