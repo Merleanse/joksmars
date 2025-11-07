@@ -1,42 +1,27 @@
 [
  {
-  "Column2": "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan"
+  "FID": 1,
+  "Daerah Kepolisian": "Sektor Laweyan",
+  "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan": 1
  },
  {
-  "Column2": 2024
+  "FID": 2,
+  "Daerah Kepolisian": "Sektor Serengan",
+  "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan": 4
  },
  {
-  "Kepolisian": "1. Sektor Laweyan",
-  "Column2": 1,
-  "Column3": 88.6
+  "FID": 3,
+  "Daerah Kepolisian": "Sektor Pasar Kliwon",
+  "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan": 11
  },
  {
-  "Kepolisian": "2. Sektor Serengan",
-  "Column2": 4,
-  "Column3": 91.6
+  "FID": 4,
+  "Daerah Kepolisian": "Sektor Jebres",
+  "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan": 16
  },
  {
-  "Kepolisian": "3. Sektor Pasar Kliwon",
-  "Column2": 11,
-  "Column3": 98.6
- },
- {
-  "Kepolisian": "4. Sektor Jebres",
-  "Column2": 16,
-  "Column3": 103.6
- },
- {
-  "Kepolisian": "5. Sektor Banjarsari",
-  "Column2": 11,
-  "Column3": 98.6
- },
- {
-  "Kepolisian": "6. Resor Surakarta",
-  "Column2": 438
- },
- {
-  "Kepolisian": "Kota Surakarta",
-  "Column2": 481,
-  "Column3": 481
+  "FID": 5,
+  "Daerah Kepolisian": "Sektor Banjasari",
+  "Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan": 11
  }
 ]

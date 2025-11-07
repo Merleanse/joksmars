@@ -1,62 +1,74 @@
 [
-  {
-    "Bulan": "",
-    "": ""
-  },
-  {
-    "Bulan": "",
-    "": "Maks"
-  },
-  {
-    "Bulan": "",
-    "": "2024"
-  },
-  {
-    "Bulan": "Januari",
-    "": "35.2"
-  },
-  {
-    "Bulan": "Februari",
-    "": "34.2"
-  },
-  {
-    "Bulan": "Maret",
-    "": "34"
-  },
-  {
-    "Bulan": "April",
-    "": "34.6"
-  },
-  {
-    "Bulan": "Mei",
-    "": "34"
-  },
-  {
-    "Bulan": "Juni",
-    "": "34.6"
-  },
-  {
-    "Bulan": "Juli",
-    "": "34"
-  },
-  {
-    "Bulan": "Agustus",
-    "": "34.8"
-  },
-  {
-    "Bulan": "September",
-    "": "35.4"
-  },
-  {
-    "Bulan": "Oktober",
-    "": "36.2"
-  },
-  {
-    "Bulan": "November",
-    "": "34.6"
-  },
-  {
-    "Bulan": "Desember",
-    "": "32.8"
-  }
+ {
+  "Bulan": "Januari",
+  "Suhu Minimal": 23.4,
+  "Suhu Rata Rata": 27.1,
+  "Suhu Maks": 35.2
+ },
+ {
+  "Bulan": "Februari",
+  "Suhu Minimal": 23.4,
+  "Suhu Rata Rata": 27,
+  "Suhu Maks": 34.2
+ },
+ {
+  "Bulan": "Maret",
+  "Suhu Minimal": 23,
+  "Suhu Rata Rata": 27.4,
+  "Suhu Maks": 34
+ },
+ {
+  "Bulan": "April",
+  "Suhu Minimal": 24.4,
+  "Suhu Rata Rata": 28.2,
+  "Suhu Maks": 34.6
+ },
+ {
+  "Bulan": "Mei",
+  "Suhu Minimal": 23.4,
+  "Suhu Rata Rata": 27.4,
+  "Suhu Maks": 34
+ },
+ {
+  "Bulan": "Juni",
+  "Suhu Minimal": 22.2,
+  "Suhu Rata Rata": 27.9,
+  "Suhu Maks": 34.6
+ },
+ {
+  "Bulan": "Juli",
+  "Suhu Minimal": 20.8,
+  "Suhu Rata Rata": 26.9,
+  "Suhu Maks": 34
+ },
+ {
+  "Bulan": "Agustus",
+  "Suhu Minimal": 20,
+  "Suhu Rata Rata": 27.3,
+  "Suhu Maks": 34.8
+ },
+ {
+  "Bulan": "September",
+  "Suhu Minimal": 22.6,
+  "Suhu Rata Rata": 28.2,
+  "Suhu Maks": 35.4
+ },
+ {
+  "Bulan": "Oktober",
+  "Suhu Minimal": 23.6,
+  "Suhu Rata Rata": 29.1,
+  "Suhu Maks": 36.2
+ },
+ {
+  "Bulan": "November",
+  "Suhu Minimal": 23.4,
+  "Suhu Rata Rata": 28,
+  "Suhu Maks": 34.6
+ },
+ {
+  "Bulan": "Desember",
+  "Suhu Minimal": 23,
+  "Suhu Rata Rata": 26.7,
+  "Suhu Maks": 32.8
+ }
 ]
