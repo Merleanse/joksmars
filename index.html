@@ -250,7 +250,7 @@
                         kejahatanRes, 
                         suhuRes     
                     ] = await Promise.all([
-                        fetch('Data/AdministrasiKelurahan.geojson'),
+                        fetch('Data/BatasKelurahan.geojson'),
                         fetch('Data/Kesehatan.geojson'),
                         fetch('Data/Pendidikan.geojson'),
                         fetch('Data/Transportasi.geojson'),
@@ -261,7 +261,7 @@
                         fetch('Data/Suhu.json')     
                     ]);
 
-                    // BARU: Cek jika ada fetch yang gagal
+                    // Cek jika ada fetch yang gagal
                     const responses = [adminRes, kesehatanRes, pendidikanRes, transportasiRes, sampelRes, jalanRes, nilaiTanahRes, kejahatanRes, suhuRes];
                     const failedResponse = responses.find(res => !res.ok);
                     if (failedResponse) {
@@ -478,7 +478,7 @@
                 
             } // Akhir initMapLayers
 
-            /* --- FUNGSI CHART BARU (DIPERBAIKI) --- */
+            /* --- FUNGSI CHART BARU --- */
             
             /**
              * Inisialisasi Chart Kejahatan (Bar Chart)

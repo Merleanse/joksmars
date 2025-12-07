@@ -1,0 +1,68 @@
+graph TD
+    %% Node Definitions
+    Start((Mulai))
+    
+    subgraph Data_Input [Tahap Persiapan Data]
+        Input1[/Citra Sentinel-1 SLC/]
+        Input2[/FABDEM (Digital Elevation Model)/]
+        Input3[/Peta Kejadian Banjir Historis/]
+    end
+
+    subgraph PS_InSAR [Pengolahan Subsiden (PS-InSAR)]
+        P1[Pre-processing & Pembentukan Interferogram]
+        P2[Seleksi Kandidat PS \n(Amplitude Dispersion Index < 0.4)]
+        P3[Estimasi Fase & 3D Unwrapping \n(STaMPS)]
+        P4[Koreksi Error Atmosfer & SCLA]
+        P5[Konversi LoS ke Kecepatan Vertikal (Vv)]
+        Result_Sub[/Peta Laju Penurunan Muka Tanah/]
+    end
+
+    subgraph GFI_Model [Pemodelan Geomorphic Flood Index]
+        G1[Pre-processing DEM: Fill Sinks]
+        G2[Analisis Hidrologi: \nFlow Direction & Flow Accumulation (Ar)]
+        G3[Penentuan Jaringan Sungai & \nFlow Distance]
+        G4[Perhitungan HAND (H) \n(Height Above Nearest Drainage)]
+        G5[Perhitungan Tinggi Air Referensi (hr) \n(hr = a * Ar^n)]
+    end
+
+    subgraph Integration [Integrasi Data & Modifikasi]
+        Int1[Koreksi DEM berdasarkan Laju Subsiden]
+        Int2[Perhitungan GFI Terkoreksi \nGFI = ln(hr / H_koreksi)]
+        Int3[Perhitungan Kedalaman Genangan (WD)]
+    end
+
+    subgraph Validation [Validasi & Klasifikasi Bahaya]
+        V1[Klasifikasi Bahaya Banjir \n(Fuzzy Large Membership)]
+        V2{Validasi dengan \nData Historis}
+        V3[Binary Classification \n(Thresholding)]
+        V4[Confusion Matrix & Kurva ROC]
+        Result_Final[Evaluasi Akurasi (AUC) & \nPeta Bahaya Banjir Terkoreksi]
+    end
+
+    %% Connections
+    Start --> Input1 & Input2 & Input3
+    
+    %% Path InSAR
+    Input1 --> P1 --> P2 --> P3 --> P4 --> P5 --> Result_Sub
+    
+    %% Path GFI
+    Input2 --> G1 --> G2 --> G3 --> G4 --> G5
+    
+    %% Integration
+    Result_Sub --> Int1
+    G4 --> Int1
+    G5 --> Int2
+    Int1 --> Int2 --> Int3
+    
+    %% Validation
+    Input3 -.-> V2
+    Int3 --> V1 --> V2
+    V2 --> V3 --> V4 --> Result_Final
+    
+    Result_Final --> Finish((Selesai))
+
+    %% Styling
+    style Start fill:#f9f,stroke:#333,stroke-width:2px
+    style Finish fill:#f9f,stroke:#333,stroke-width:2px
+    style Integration fill:#e1f5fe,stroke:#01579b,stroke-width:2px,stroke-dasharray: 5 5
+    style Result_Sub fill:#fff9c4,stroke:#fbc02d
