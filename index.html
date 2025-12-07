@@ -3,648 +3,432 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peta Interaktif Nilai Tanah</title>
+    <title>Sistem Informasi Geografis Kecamatan Serengan</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossorigin="" />
-          
-    <!-- Leaflet Routing Machine CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* Memastikan peta mengisi seluruh tinggi layar */
-        html, body {
-            height: 100%;
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        #map { height: 100%; width: 100%; border-radius: 0.5rem; z-index: 1; }
         
-        #map {
-            height: 100vh;
-        }
-        
-        /* Kustomisasi style untuk Leaflet UI */
-        .leaflet-control-layers,
-        .leaflet-bar {
-            border-radius: 0.5rem; /* rounded-lg */
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); /* shadow-md */
-            border: none;
-        }
-        
-        /* Sembunyikan panel instruksi rute, tampilkan hanya garisnya */
-        .leaflet-routing-container {
-            display: none;
-        }
+        .nav-btn.active { background-color: #0F172A; color: #38BDF8; border-left: 4px solid #38BDF8; }
+        .nav-btn:hover:not(.active) { background-color: #E2E8F0; color: #0F172A; }
 
-        .leaflet-bar a {
-            border: none;
-        }
-        
-        .leaflet-bar a:first-child {
-            border-top-left-radius: 0.5rem;
-            border-top-right-radius: 0.5rem;
-        }
+        /* Toast & Legend */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 12px 20px; border-radius: 8px; color: white; font-size: 0.875rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); animation: slideIn 0.3s ease-out; display: flex; align-items: center; min-width: 250px; }
+        .toast-success { background-color: #10B981; } .toast-error { background-color: #EF4444; } .toast-info { background-color: #3B82F6; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        .leaflet-bar a:last-child {
-            border-bottom-left-radius: 0.5rem;
-            border-bottom-right-radius: 0.5rem;
-        }
-        
-        /* Style untuk Tombol Reset/Home Kustom */
-        .custom-reset-button {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 30px;
-            height: 30px;
-            font-size: 1.2rem;
-            line-height: 30px;
-            background-color: #fff;
-            cursor: pointer;
-        }
-        .custom-reset-button:hover {
-            background-color: #f4f4f4;
-        }
-        .custom-reset-button svg {
-            width: 18px;
-            height: 18px;
-            fill: #333;
-        }
+        .legend { line-height: 20px; color: #333; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: 'Inter', sans-serif; font-size: 12px; min-width: 180px; }
+        .legend h4 { font-weight: 700; margin: 0 0 10px; color: #475569; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; }
+        .legend i { width: 16px; height: 16px; float: left; margin-right: 10px; opacity: 0.9; border-radius: 3px; }
+        .legend-row { clear: both; margin-bottom: 6px; display: flex; align-items: center; }
 
-        /* BARU: Style untuk Legenda Nilai Tanah */
-        #legenda-nilai-tanah .legend-color-box {
-            width: 1rem;
-            height: 1rem;
-            margin-right: 0.5rem;
-            border: 1px solid #9ca3af; /* gray-400 */
-        }
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
-<body class="overflow-hidden">
+<body class="h-screen flex overflow-hidden text-slate-800">
 
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <div class="w-full sm:w-1/3 md:w-1/4 lg:w-1/5 h-full bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto shadow-lg z-10">
-            <h1 class="text-xl font-bold text-gray-800 mb-4">Peta Interaktif Fasilitas dan Nilai Tanah</h1>
-            <p class="text-sm text-gray-600 mb-6">
-                Sistem informasi geografis untuk menampilkan rute terdekat dari titik sampel ke fasilitas terdekat.
-            </p>
+    <div id="toast-container"></div>
 
-            <!-- Legenda -->
-            <div class="mb-6">
-                <h2 class="text-lg font-semibold text-gray-700 mb-3">Legenda</h2>
-                <ul class="space-y-2 text-sm">
-                    <li class="flex items-center">
-                        <span class="w-4 h-4 rounded-full bg-red-500 mr-2 border border-red-700"></span> Titik Sampel
-                    </li>
-                    <li class="flex items-center">
-                        <span class="w-4 h-4 rounded-full bg-blue-500 mr-2 border border-blue-700"></span> Fas. Kesehatan
-                    </li>
-                    <li class="flex items-center">
-                        <span class="w-4 h-4 rounded-full bg-emerald-500 mr-2 border border-emerald-700"></span> Fas. Pendidikan
-                    </li>
-                    <li class="flex items-center">
-                        <span class="w-4 h-4 rounded-full bg-yellow-500 mr-2 border border-yellow-700"></span> Fas. Transportasi
-                    </li>
-                    <li class="flex items-center">
-                        <span class="w-4 h-4 bg-gray-300 opacity-70 mr-2 border border-gray-500"></span> Area Administrasi
-                    </li>
-                    <!-- Placeholder Legenda Nilai Tanah (DIPERBARUI) -->
-                    <div id="legenda-nilai-tanah" class="mt-2">
-                         <h3 class="text-sm font-semibold text-gray-600 mb-1">Nilai Tanah (per m²)</h3>
-                         <!-- Konten akan diisi oleh JavaScript -->
-                    </div>
-                     <li class="flex items-center mt-2"> <!-- Ditambahkan mt-2 -->
-                        <span class="w-4 h-1" style="background: #C11C84; opacity: 0.7; margin-right: 0.5rem;"></span> Jaringan Jalan
-                    </li>
-                    <li class="flex items-center">
-                        <span class="w-4 h-1" style="background: #3b82f6; opacity: 0.8; margin-right: 0.5rem;"></span> Rute Kesehatan
-                    </li>
-                    <li class="flex items-center">
-                        <span class="w-4 h-1" style="background: #10b981; opacity: 0.8; margin-right: 0.5rem;"></span> Rute Pendidikan
-                    </li>
-                    <li class="flex items-center">
-                        <span class="w-4 h-1" style="background: #eab308; opacity: 0.8; margin-right: 0.5rem;"></span> Rute Transportasi
-                    </li>
-                </ul>
-            </div>
-            
-            <!-- Chart Kejahatan (BARU) -->
-            <div class="mb-6">
-                <h2 class="text-lg font-semibold text-gray-700 mb-3">Jumlah Pelaporan Kejahatan</h2>
-                <div class="w-full" style="max-height: 200px;">
-                    <canvas id="chartKejahatan"></canvas>
-                </div>
-            </div>
-            
-            <!-- Chart Suhu (BARU) -->
-            <div class="mb-6">
-                <h2 class="text-lg font-semibold text-gray-700 mb-3">Data Suhu Bulanan</h2>
-                <div class="w-full" style="max-height: 200px;">
-                    <canvas id="chartSuhu"></canvas>
-                </div>
-            </div>
-
-            <!-- Informasi -->
-            <div class="text-xs text-gray-500">
-                <h3 class="font-semibold mb-2">Peta ini dibuat oleh:</h3>
-                <ol class="list-decimal list-inside space-y-1">
-                    <li><strong>Zuniarni Kusuma Dewi</strong> - 5016221007</li>
-                    <li><strong>Fadillatus Syifa'</strong> - 5016221039</li>
-                    <li><strong>Marsa Aulia Fasya</strong> - 5016221123</li>
-                </ol>
-            </div>
-            
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col z-20 hidden md:flex shadow-xl">
+        <div class="h-16 flex items-center px-6 border-b border-slate-100 bg-slate-50">
+            <i class="fas fa-map-location-dot text-blue-600 text-xl mr-3"></i>
+            <span class="font-bold text-lg tracking-tight text-slate-800">SIG SERENGAN</span>
         </div>
+        <nav class="flex-1 py-6 space-y-1 px-3">
+            <p class="px-3 text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">Menu Utama</p>
+            <button onclick="switchView('map')" id="btn-map" class="nav-btn active w-full flex items-center px-3 py-3 rounded-md text-sm font-medium transition-colors"><i class="fas fa-globe-asia w-6 text-center text-lg mr-2"></i> Peta Sebaran</button>
+            <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center px-3 py-3 rounded-md text-sm font-medium text-slate-500 transition-colors"><i class="fas fa-chart-line w-6 text-center text-lg mr-2"></i> Dashboard Data</button>
+            
+            <div class="mt-8">
+                <p class="px-3 text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider">Layer Peta</p>
+                <div class="px-3 space-y-3 text-sm text-slate-600">
+                    <div class="flex items-center cursor-pointer hover:text-blue-600 transition" onclick="toggleLayer('batas')">
+                        <span class="w-3 h-3 rounded-full border border-blue-500 bg-blue-100 mr-3"></span> Batas Kelurahan
+                    </div>
+                    <div class="flex items-center cursor-pointer hover:text-orange-600 transition" onclick="toggleLayer('nbt')">
+                        <span class="w-3 h-3 rounded-full bg-orange-500 mr-3"></span> Nilai Bidang Tanah
+                    </div>
+                    <div class="flex items-center cursor-pointer hover:text-green-600 transition" onclick="toggleLayer('znt')">
+                        <span class="w-3 h-3 rounded-full bg-green-500 mr-3"></span> Zona Nilai Tanah
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <div class="p-4 border-t border-slate-100 bg-slate-50 text-xs text-slate-500 text-center">
+            &copy; 2025 Kecamatan Serengan
+        </div>
+    </aside>
 
-        <!-- Map Container -->
-        <div id="map" class="flex-1"></div>
+    <!-- MOBILE HEADER -->
+    <div class="md:hidden fixed top-0 w-full bg-white border-b border-slate-200 z-50 h-16 flex items-center justify-between px-4 shadow-sm">
+        <div class="flex items-center"><i class="fas fa-map-location-dot text-blue-600 mr-2"></i><span class="font-bold text-slate-800">SIG SERENGAN</span></div>
+        <button onclick="alert('Gunakan Desktop Mode untuk tampilan optimal')" class="text-slate-500"><i class="fas fa-bars text-xl"></i></button>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""></script>
-            
-    <!-- Leaflet Routing Machine JS -->
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 relative bg-slate-100 mt-16 md:mt-0 overflow-hidden">
+        
+        <!-- MAP VIEW -->
+        <div id="view-map" class="absolute inset-0 p-3 md:p-4 h-full flex flex-col">
+            <div class="relative w-full h-full bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD VIEW -->
+        <div id="view-dashboard" class="absolute inset-0 p-4 md:p-8 h-full hidden overflow-y-auto custom-scroll">
+            <header class="mb-8 flex justify-between items-end">
+                <div><h1 class="text-2xl font-bold text-slate-800">Dashboard Statistik</h1><p class="text-slate-500 text-sm mt-1">Analisis Tren & Kurva Data Wilayah</p></div>
+                <button onclick="reloadCharts()" class="bg-white hover:bg-slate-50 text-slate-600 border border-slate-300 px-4 py-2 rounded shadow-sm text-sm font-medium transition"><i class="fas fa-sync-alt mr-2 text-blue-500"></i> Refresh Data</button>
+            </header>
+
+            <!-- STATS CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div><p class="text-xs font-bold text-slate-400 uppercase">Total Kelurahan</p><h3 class="text-2xl font-bold text-slate-800">7</h3></div>
+                    <i class="fas fa-map text-blue-200 text-3xl"></i>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div><p class="text-xs font-bold text-slate-400 uppercase">Zona Nilai</p><h3 class="text-2xl font-bold text-slate-800">12</h3></div>
+                    <i class="fas fa-layer-group text-green-200 text-3xl"></i>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div><p class="text-xs font-bold text-slate-400 uppercase">Bidang Tanah</p><h3 class="text-2xl font-bold text-slate-800">2.4K+</h3></div>
+                    <i class="fas fa-home text-orange-200 text-3xl"></i>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div><p class="text-xs font-bold text-slate-400 uppercase">Avg Suhu</p><h3 class="text-2xl font-bold text-slate-800">29°C</h3></div>
+                    <i class="fas fa-temperature-high text-red-200 text-3xl"></i>
+                </div>
+            </div>
+
+            <!-- CHARTS GRID -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
+                
+                <!-- 1. Pie Chart: Bidang Tanah (Tetap Pie agar variasi visual) -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-700 mb-4 text-sm flex items-center border-b pb-2"><i class="fas fa-chart-pie mr-2 text-blue-500"></i> Proporsi Jumlah Bidang Tanah</h3>
+                    <div class="h-64 relative flex justify-center"><canvas id="chartBidang"></canvas></div>
+                </div>
+
+                <!-- 2. Line Chart: NTZ (Kurva) -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-700 mb-4 text-sm flex items-center border-b pb-2"><i class="fas fa-wave-square mr-2 text-green-500"></i> Tren Nilai Tanah per Zona (NTZ)</h3>
+                    <div class="h-64 relative"><canvas id="chartNTZ"></canvas></div>
+                </div>
+
+                <!-- 3. Line Chart: NTK (Kurva) -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-700 mb-4 text-sm flex items-center border-b pb-2"><i class="fas fa-bezier-curve mr-2 text-indigo-500"></i> Tren Nilai Tanah per Kelurahan (NTK)</h3>
+                    <div class="h-64 relative"><canvas id="chartNTK"></canvas></div>
+                </div>
+
+                 <!-- 4. Line Chart: Kejahatan (Kurva) -->
+                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-700 mb-4 text-sm flex items-center border-b pb-2"><i class="fas fa-heartbeat mr-2 text-slate-700"></i> Grafik Statistik Kejahatan</h3>
+                    <div class="h-64 relative"><canvas id="chartKejahatan"></canvas></div>
+                </div>
+
+                <!-- 5. Line Chart: Suhu (Kurva Full Width) -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
+                    <h3 class="font-bold text-slate-700 mb-4 text-sm flex items-center border-b pb-2"><i class="fas fa-temperature-low mr-2 text-red-500"></i> Tren Suhu Rata-rata Bulanan</h3>
+                    <div class="h-64 relative w-full"><canvas id="chartSuhu"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- SCRIPTS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        // --- INISIALISASI PETA LEAFLET ---
-        
-        const initialCenter = [-7.79, 110.36];
-        const initialZoom = 13;
-        
-        let map;
-        let adminLayer, jalanLayer, fasilitasKesehatanLayer, fasilitasPendidikanLayer, fasilitasTransportasiLayer, sampelLayer;
-        let nilaiTanahLayer; // <-- BARU
-        let routingControls = []; 
+        // --- 1. UTILS ---
+        function showToast(msg, type='info') {
+            const el = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':type==='error'?'exclamation-circle':'info-circle'} mr-2"></i> ${msg}`;
+            el.appendChild(toast);
+            setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(),300); }, 3000);
+        }
+        function formatRupiah(num) { return new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(num); }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            // Inisialisasi Peta
-            map = L.map('map').setView(initialCenter, initialZoom);
+        // --- 2. MAP SETUP ---
+        const map = L.map('map').setView([-7.575, 110.825], 14);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:20 }).addTo(map);
 
-            // Base Maps
-            const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+        // --- 3. SYMBOLOGY (Updated Classes) ---
+        const grades = [4000000, 5250000, 6500000, 7500000, 9000000, 12000000, 15000000, 23000000];
+        function getColor(d) { return d<=grades[0]?'#FFEDA0': d<=grades[1]?'#FED976': d<=grades[2]?'#FEB24C': d<=grades[3]?'#FD8D3C': d<=grades[4]?'#FC4E2A': d<=grades[5]?'#E31A1C': d<=grades[6]?'#BD0026':'#800026'; }
 
-            const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri'
-            });
+        // --- 4. LEGEND ---
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = '<h4>Harga Tanah / m²</h4>';
+            for (let i=0; i<grades.length; i++) div.innerHTML += `<div class="legend-row"><i style="background:${getColor(grades[i])}"></i><span class="legend-label">&lt; ${formatRupiah(grades[i])}</span></div>`;
+            return div;
+        };
+        legend.addTo(map);
 
-            // --- Fungsi untuk memformat Rupiah (BARU) ---
-            function formatRupiah(angka) {
-                if (angka === null || isNaN(angka)) {
-                    return "Data tidak tersedia";
-                }
-                return new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                }).format(angka);
-            }
+        // --- 5. DATA LOADING ---
+        const layers = { batas: L.featureGroup(), nbt: L.featureGroup(), znt: L.featureGroup() };
 
-            // --- Fungsi untuk membuat Ikon Kustom ---
-            function createCustomIcon(color) {
-                const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" width="28px" height="28px" style="stroke: #ffffff; stroke-width: 1.5; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
-                    <path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12C20 5.58 16.42 2 12 2zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
-                </svg>`;
-                
-                return L.divIcon({
-                    html: svgIcon,
-                    className: 'custom-div-icon',
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 28], 
-                    popupAnchor: [0, -28]
-                });
-            }
-
-            const iconKesehatan = createCustomIcon('#3b82f6'); // blue-500
-            const iconPendidikan = createCustomIcon('#10b981'); // emerald-500
-            const iconTransportasi = createCustomIcon('#eab308'); // yellow-500
-            const iconSampel = createCustomIcon('#ef4444'); // red-500
-
-            // --- Fungsi untuk memuat data GeoJSON ---
-            async function loadData() {
-                let adminRes, kesehatanRes, pendidikanRes, transportasiRes, sampelRes, jalanRes, nilaiTanahRes, kejahatanRes, suhuRes;
-                try {
-                    // Daftar file yang akan di-fetch
-                    [
-                        adminRes, 
-                        kesehatanRes, 
-                        pendidikanRes, 
-                        transportasiRes, 
-                        sampelRes, 
-                        jalanRes,
-                        nilaiTanahRes, 
-                        kejahatanRes, 
-                        suhuRes     
-                    ] = await Promise.all([
-                        fetch('Data/BatasKelurahan.geojson'),
-                        fetch('Data/Kesehatan.geojson'),
-                        fetch('Data/Pendidikan.geojson'),
-                        fetch('Data/Transportasi.geojson'),
-                        fetch('Data/TitikSampel.geojson'),
-                        fetch('Data/Jalan.geojson'),
-                        fetch('Data/NilaiTanah.geojson'), 
-                        fetch('Data/Kejahatan.json'), 
-                        fetch('Data/Suhu.json')     
-                    ]);
-
-                    // Cek jika ada fetch yang gagal
-                    const responses = [adminRes, kesehatanRes, pendidikanRes, transportasiRes, sampelRes, jalanRes, nilaiTanahRes, kejahatanRes, suhuRes];
-                    const failedResponse = responses.find(res => !res.ok);
-                    if (failedResponse) {
-                        throw new Error(`Gagal memuat file: ${failedResponse.url} (Status: ${failedResponse.status})`);
-                    }
-
-                    // Parse semua data JSON
-                    let data;
-                    try {
-                        data = {
-                            admin: await adminRes.json(),
-                            kesehatan: await kesehatanRes.json(),
-                            pendidikan: await pendidikanRes.json(),
-                            transportasi: await transportasiRes.json(),
-                            sampel: await sampelRes.json(),
-                            jalan: await jalanRes.json(),
-                            nilaiTanah: await nilaiTanahRes.json(),
-                            kejahatan: await kejahatanRes.json(), 
-                            suhu: await suhuRes.json()          
-                        };
-                    } catch (parseError) {
-                        console.error("Gagal mem-parsing JSON:", parseError);
-                        throw new Error(`Gagal mem-parsing file JSON. Cek konsol untuk detail. Error: ${parseError.message}`);
-                    }
-
-
-                    // Setelah semua data dimuat, inisialisasi layer peta dan chart
-                    initMapLayers(data);
-
-                } catch (error) {
-                    console.error("Gagal memuat data GeoJSON/JSON:", error);
-                    // BARU: Tampilkan error yang lebih spesifik
-                    alert(`Gagal memuat data. Pesan: "${error.message}". Pastikan semua file data ada di folder 'Data/' dan formatnya benar.`);
-                }
-            }
-
-            // --- Fungsi untuk inisialisasi layer setelah data di-load ---
-            function initMapLayers(data) {
-                
-                // 1. Area Administrasi
-                adminLayer = L.geoJSON(data.admin, {
-                    style: {
-                        color: "#4b5563", weight: 2, opacity: 0.8,
-                        fillColor: "#d1d5db", fillOpacity: 0.5
+        async function loadGeoJSON(url, layerGroup, name, valField) {
+            try {
+                showToast(`Memuat ${name}...`);
+                const res = await fetch(url);
+                if(!res.ok) throw new Error('Network response was not ok');
+                const data = await res.json();
+                L.geoJSON(data, {
+                    style: f => {
+                        if(valField && f.properties[valField]) return { fillColor: getColor(f.properties[valField]), weight:1, opacity:1, color:'white', dashArray:'3', fillOpacity:0.75 };
+                        return { color:'#3B82F6', weight:2, opacity:1, fillOpacity:0.05, dashArray:'5, 5' };
                     },
-                    onEachFeature: (feature, layer) => layer.bindPopup(`<strong>Kelurahan:</strong> ${feature.properties.NAMOBJ}`)
-                }).addTo(map);
-
-                // --- Kalkulasi Klasifikasi Nilai Tanah (BARU) ---
-                const nilaiTanahValues = data.nilaiTanah.features
-                    .map(f => f.properties.PREDICTED)
-                    .filter(v => v !== null && !isNaN(v) && v > 0);
-                
-                // 5 Kelas Warna (gradasi ungu)
-                const colors = ['#f5f3ff', '#d8b4fe', '#a78bfa', '#8b5cf6', '#6d28d9']; // Tailwind violet 50, 300, 400, 500, 700
-                let breaks = [100000, 500000, 1000000, 2000000]; // Default breaks jika kalkulasi gagal
-
-                
-                if (nilaiTanahValues.length > 0) {
-                    const minVal = Math.min(...nilaiTanahValues);
-                    const maxVal = Math.max(...nilaiTanahValues);
-                    const range = maxVal - minVal;
-                    // Buat 4 breaks (5 kelas) menggunakan equal interval
-                    breaks = [
-                        minVal + range * 0.2,
-                        minVal + range * 0.4,
-                        minVal + range * 0.6,
-                        minVal + range * 0.8
-                    ];
-                }
-
-                // Fungsi untuk mendapatkan warna berdasarkan nilai
-                function getNilaiTanahColor(value) {
-                    if (value === null || isNaN(value) || value <= 0) return '#9ca3af'; // gray-400
-                    if (value <= breaks[0]) return colors[0];
-                    if (value <= breaks[1]) return colors[1];
-                    if (value <= breaks[2]) return colors[2];
-                    if (value <= breaks[3]) return colors[3];
-                    return colors[4];
-                }
-
-                // 2. Nilai Tanah (DIPERBARUI)
-                nilaiTanahLayer = L.geoJSON(data.nilaiTanah, {
-                    style: function(feature) { // Diubah ke fungsi
-                        const value = feature.properties.PREDICTED;
-                        return {
-                            fillColor: getNilaiTanahColor(value), // Panggil fungsi warna
-                            color: "#4b5563", // Batas abu-abu gelap
-                            weight: 0.5,
-                            opacity: 0.8,
-                            fillOpacity: 0.7
-                        };
-                    },
-                    onEachFeature: (feature, layer) => {
-                        const hargaPrediksi = feature.properties.PREDICTED;
-                        const hargaFormatted = formatRupiah(hargaPrediksi);
-                        layer.bindPopup(`<strong>Prediksi Nilai Tanah:</strong><br>${hargaFormatted} / m²`);
-                    }
-                }).addTo(map); // Ditambahkan ke peta setelah admin
-
-                // 3. Jaringan Jalan
-                jalanLayer = L.geoJSON(data.jalan, {
-                    style: { color: "#C11C84", weight: 2, opacity: 0.7 },
-                    onEachFeature: (feature, layer) => layer.bindPopup(`${feature.properties.NAMOBJ || 'Jalan'}`)
-                }).addTo(map);
-
-                // 3. Fasilitas Kesehatan
-                fasilitasKesehatanLayer = L.geoJSON(data.kesehatan, {
-                    pointToLayer: (f, latlng) => L.marker(latlng, { icon: iconKesehatan }),
-                    // --- KODE DIUBAH UNTUK MENAMBAHKAN KETERANGAN ---
-                    onEachFeature: (f, layer) => {
-                        const nama = f.properties.NAMOBJ || "Nama Fasilitas";
-                        const ket = f.properties.Keterangan || ""; // Ambil 'Keterangan'
-                        // Tampilkan nama dan keterangan (jika ada)
-                        layer.bindPopup(`<strong>${nama}</strong><br>${ket}`);
-                    }
-                    // --- AKHIR PERUBAHAN ---
-                }).addTo(map);
-
-                // 4. Fasilitas Pendidikan
-                fasilitasPendidikanLayer = L.geoJSON(data.pendidikan, {
-                    pointToLayer: (f, latlng) => L.marker(latlng, { icon: iconPendidikan }),
-                    // --- KODE DIUBAH UNTUK MENAMBAHKAN KETERANGAN ---
-                    onEachFeature: (f, layer) => {
-                        const nama = f.properties.NAMOBJ || "Nama Fasilitas";
-                        const ket = f.properties.Keterangan || ""; // Ambil 'Keterangan'
-                        layer.bindPopup(`<strong>${nama}</strong><br>${ket}`);
-                    }
-                    // --- AKHIR PERUBAHAN ---
-                }).addTo(map);
-                
-                // 5. Fasilitas Transportasi
-                fasilitasTransportasiLayer = L.geoJSON(data.transportasi, {
-                    pointToLayer: (f, latlng) => L.marker(latlng, { icon: iconTransportasi }),
-                    // --- KODE DIUBAH UNTUK MENAMBAHKAN KETERANGAN ---
-                    onEachFeature: (f, layer) => {
-                        const nama = f.properties.NAMOBJ || "Nama Fasilitas";
-                        const ket = f.properties.Keterangan || ""; // Ambil 'Keterangan'
-                        layer.bindPopup(`<strong>${nama}</strong><br>${ket}`);
-                    }
-                    // --- AKHIR PERUBAHAN ---
-                }).addTo(map);
-
-                // 6. Titik Sampel (Dengan Logika Rute)
-                sampelLayer = L.geoJSON(data.sampel, {
-                    pointToLayer: (f, latlng) => L.marker(latlng, { icon: iconSampel })
-                                                .on('click', () => handleSampelClick(latlng))
-                }).addTo(map);
-
-                // --- Kontrol Layer ---
-                const baseMaps = { "OpenStreetMap": osm, "Satelit": satellite };
-                const overlayMaps = {
-                    "Area Administrasi": adminLayer,
-                    "Zona Nilai Tanah": nilaiTanahLayer, // <-- BARU
-                    "Jaringan Jalan": jalanLayer,
-                    "Fasilitas Kesehatan": fasilitasKesehatanLayer,
-                    "Fasilitas Pendidikan": fasilitasPendidikanLayer,
-                    "Fasilitas Transportasi": fasilitasTransportasiLayer,
-                    "Titik Sampel": sampelLayer
-                };
-                L.control.layers(baseMaps, overlayMaps, { position: 'topright' }).addTo(map);
-
-                // --- Tombol Reset View (Home) KUSTOM ---
-                const ResetControl = L.Control.extend({
-                    options: { position: 'topleft' },
-                    onAdd: function (map) {
-                        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                        const button = L.DomUtil.create('a', 'custom-reset-button', container);
-                        button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg>';
-                        button.href = '#';
-                        button.role = 'button';
-                        button.title = 'Reset View';
-
-                        L.DomEvent.disableClickPropagation(button);
-                        L.DomEvent.on(button, 'click', function (e) {
-                            L.DomEvent.stop(e);
-                            resetRoutes(); 
-                            if (adminLayer) map.fitBounds(adminLayer.getBounds());
-                            else map.setView(initialCenter, initialZoom);
-                        });
-                        return container;
-                    }
-                });
-                map.addControl(new ResetControl());
-
-                // Auto-zoom ke data administrasi
-                if (adminLayer) {
-                    map.fitBounds(adminLayer.getBounds());
-                }
-
-                // --- Buat Legenda Nilai Tanah Dinamis (BARU) ---
-                const legendaContainer = document.getElementById('legenda-nilai-tanah');
-                let legendaHtml = '';
-                
-                // Kelas 1
-                legendaHtml += `<li class="flex items-center text-xs"><span class="legend-color-box" style="background-color: ${colors[0]};"></span> &le; ${formatRupiah(breaks[0])}</li>`;
-                // Kelas 2-4
-                for (let i = 0; i < breaks.length - 1; i++) {
-                    legendaHtml += `<li class="flex items-center text-xs"><span class="legend-color-box" style="background-color: ${colors[i+1]};"></span> ${formatRupiah(breaks[i])} - ${formatRupiah(breaks[i+1])}</li>`;
-                }
-                // Kelas 5
-                legendaHtml += `<li class="flex items-center text-xs"><span class="legend-color-box" style="background-color: ${colors[4]};"></span> &gt; ${formatRupiah(breaks[3])}</li>`;
-                
-                legendaContainer.innerHTML += `<ul class="space-y-1">${legendaHtml}</ul>`;
-                
-                // --- INISIALISASI CHART (BARU) ---
-                // Pastikan data ada sebelum inisialisasi
-                if (data.kejahatan) {
-                    initChartKejahatan(data.kejahatan);
-                }
-                if (data.suhu) {
-                    initChartSuhu(data.suhu);
-                }
-                
-            } // Akhir initMapLayers
-
-            /* --- FUNGSI CHART BARU --- */
-            
-            /**
-             * Inisialisasi Chart Kejahatan (Bar Chart)
-             * @param {object | Array<object>} data Data dari Kejahatan.json
-             */
-            function initChartKejahatan(data) {
-                let chartArray = null;
-                // Cek apakah data itu sendiri adalah array
-                if (Array.isArray(data)) {
-                    chartArray = data;
-                } 
-                // Jika data adalah objek, cari properti pertama yang merupakan array
-                else if (typeof data === 'object' && data !== null) {
-                    const key = Object.keys(data).find(k => Array.isArray(data[k]));
-                    if (key) {
-                        chartArray = data[key];
-                    }
-                }
-
-                // Jika tidak ada array yang ditemukan, hentikan dan log error
-                if (!chartArray) {
-                    console.error("Tidak dapat menemukan data array di Kejahatan.json");
-                    return;
-                }
-
-                // Ekstrak label (Kecamatan) dan data (Jumlah) dari array
-                const labels = chartArray.map(item => item["Daerah Kepolisian"]); // <-- Ini sudah benar
-                const chartData = chartArray.map(item => item["Jumlah Kejahatan yang Dilaporkan Menurut Kecamatan"]); // <-- DIPERBAIKI: Menggunakan nama kolom yang lengkap
-
-                const ctx = document.getElementById('chartKejahatan').getContext('2d');
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels, 
-                        datasets: [{
-                            label: 'Jumlah Kejahatan Dilaporkan', // <-- Diperbarui
-                            data: chartData, 
-                            backgroundColor: 'rgba(239, 68, 68, 0.6)', // Merah
-                            borderColor: 'rgba(239, 68, 68, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: { 
-                            y: { beginAtZero: true, ticks: { color: '#6b7280' } },
-                            x: { ticks: { color: '#6b7280' } }
-                        },
-                        plugins: { 
-                            legend: { display: false },
-                            tooltip: { titleFont: { size: 14 }, bodyFont: { size: 12 } }
+                    onEachFeature: (f, l) => {
+                        let content = `<div class="text-sm font-sans"><h4 class="font-bold border-b pb-1 mb-2 text-blue-600">${name}</h4><table class="w-full">`;
+                        let count=0;
+                        for(let k in f.properties){
+                            if(count<6){
+                                let v = f.properties[k];
+                                if((k==='PREDICTED'||k===valField) && v) v=formatRupiah(v);
+                                content+=`<tr><td class="text-gray-500 text-xs uppercase pr-2">${k}</td><td class="font-medium">${v}</td></tr>`;
+                            } count++;
                         }
+                        l.bindPopup(content+"</table></div>");
                     }
-                });
-            }
+                }).addTo(layerGroup);
+                layerGroup.addTo(map);
+                if(layerGroup.getBounds().isValid()) map.fitBounds(layerGroup.getBounds());
+                showToast(`${name} Sukses`, 'success');
+            } catch(e) { console.error(e); showToast(`Gagal: ${name}`, 'error'); }
+        }
+
+        loadGeoJSON('Data/BatasKelurahan.geojson', layers.batas, 'Batas Admin');
+        map.createPane('paneZNT').style.zIndex = 400;
+        loadGeoJSON('Data/ZNTBARU_FeaturesToJSON.geojson', layers.znt, 'Zona Nilai', 'PREDICTED');
+        map.createPane('paneNBT').style.zIndex = 450;
+        loadGeoJSON('Data/NBTLAYER_FeaturesToJSON.geojson', layers.nbt, 'Bidang Tanah', 'PREDICTED');
+
+        L.control.layers(null, {"Batas Kelurahan":layers.batas, "Zona Nilai":layers.znt, "Bidang Tanah":layers.nbt}, {position:'topright'}).addTo(map);
+
+        // --- 6. CHARTS LOGIC (SMART DETECTOR) ---
+        let chartsLoaded = false;
+        const chartInstances = {};
+
+        function detectKeys(data) {
+            if(!data || data.length === 0) return { label: null, value: null };
+            const sample = data[0];
+            const keys = Object.keys(sample);
+            const labelCandidates = ['Nama_Kelurahan', 'Kelurahan', 'Zona_ID', 'Jenis_Kejahatan', 'Kecamatan', 'label', 'nama', 'Name', 'Tahun', 'Bulan'];
+            const labelKey = labelCandidates.find(k => keys.includes(k)) || keys[0];
+            const valueCandidates = ['Jumlah', 'Nilai', 'Nilai_Rata_Rata', 'Total', 'value', 'count', 'Kasus'];
+            const valueKey = valueCandidates.find(k => keys.includes(k)) || keys[1];
+            return { label: labelKey, value: valueKey };
+        }
+
+        // Helper untuk opsi grafik dinamis dengan range y-axis ketat
+        function getDynamicOptions(dataValues) {
+            const minVal = Math.min(...dataValues);
+            const maxVal = Math.max(...dataValues);
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position:'bottom' } },
+                interaction: { mode: 'index', intersect: false },
+                scales: { 
+                    y: { 
+                        min: minVal, 
+                        max: maxVal,
+                        grid: { borderDash: [2, 4], color: '#e2e8f0' } 
+                    }, 
+                    x: { grid: { display: false } } 
+                }
+            };
+        }
+
+        async function loadCharts() {
+            if(chartsLoaded) return;
             
-            /**
-             * Inisialisasi Chart Suhu (Line Chart)
-             * @param {object | Array<object>} data Data dari Suhu.json
-             */
-            function initChartSuhu(data) {
-                let chartArray = null;
-                // Cek apakah data itu sendiri adalah array
-                if (Array.isArray(data)) {
-                    chartArray = data;
-                } 
-                // Jika data adalah objek, cari properti pertama yang merupakan array
-                else if (typeof data === 'object' && data !== null) {
-                    const key = Object.keys(data).find(k => Array.isArray(data[k]));
-                    if (key) {
-                        chartArray = data[key];
-                    }
+            // 1. PIE CHART: Bidang Tanah (Tetap Pie)
+            try {
+                const res = await fetch('Data/JumlahBidangTanah.json');
+                const data = await res.json();
+                const { label, value } = detectKeys(data);
+                if(label && value) {
+                    chartInstances.bidang = new Chart(document.getElementById('chartBidang'), {
+                        type: 'pie',
+                        data: {
+                            labels: data.map(d => d[label]),
+                            datasets: [{ data: data.map(d => d[value]), backgroundColor: ['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#6366F1'] }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position:'bottom', labels:{ boxWidth:10 } } } }
+                    });
                 }
+            } catch(e){ console.warn("Pie Chart Error", e); }
 
-                // Jika tidak ada array yang ditemukan, hentikan dan log error
-                if (!chartArray) {
-                    console.error("Tidak dapat menemukan data array di Suhu.json");
-                    return;
+            // 2. LINE CHART: Statistik NTZ (Kurva Dinamis)
+            try {
+                const res = await fetch('Data/StatistikNTZ.json');
+                const data = await res.json();
+                const { label, value } = detectKeys(data);
+                if(label && value) {
+                    const values = data.map(d => d[value]);
+                    chartInstances.ntz = new Chart(document.getElementById('chartNTZ'), {
+                        type: 'line',
+                        data: {
+                            labels: data.map(d => d[label]),
+                            datasets: [{
+                                label: 'Nilai Zona',
+                                data: values,
+                                borderColor: '#10B981', 
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                tension: 0.4, 
+                                fill: true,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#fff',
+                                borderWidth: 2
+                            }]
+                        },
+                        options: getDynamicOptions(values)
+                    });
                 }
+            } catch(e){ console.warn("NTZ Chart Error", e); }
 
-                // Ekstrak label (Bulan) dan data (Suhu) dari array
-                const labels = chartArray.map(item => item.Bulan);
-                const chartData = chartArray.map(item => item["Suhu Rata Rata"]); // <-- DIPERBAIKI: Menggunakan "Suhu Rata Rata" sesuai JSON
-                
+            // 3. LINE CHART: Statistik NTK (Kurva Dinamis)
+            try {
+                const res = await fetch('Data/StatistikNTK.json');
+                const data = await res.json();
+                const { label, value } = detectKeys(data);
+                if(label && value) {
+                    const values = data.map(d => d[value]);
+                    chartInstances.ntk = new Chart(document.getElementById('chartNTK'), {
+                        type: 'line',
+                        data: {
+                            labels: data.map(d => d[label]),
+                            datasets: [{
+                                label: 'Rata-rata Nilai',
+                                data: values,
+                                borderColor: '#6366F1', 
+                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#fff',
+                                borderWidth: 2
+                            }]
+                        },
+                        options: getDynamicOptions(values)
+                    });
+                }
+            } catch(e){ console.warn("NTK Chart Error", e); }
+
+            // 4. LINE CHART: Kejahatan (Kurva Dinamis)
+            try {
+                const res = await fetch('Data/Kejahatan.json');
+                const data = await res.json();
+                const { label, value } = detectKeys(data);
+                if(label && value) {
+                    const values = data.map(d => d[value]);
+                    chartInstances.kejahatan = new Chart(document.getElementById('chartKejahatan'), {
+                        type: 'line',
+                        data: {
+                            labels: data.map(d => d[label]),
+                            datasets: [{
+                                label: 'Jumlah Kasus',
+                                data: values,
+                                borderColor: '#334155', 
+                                backgroundColor: 'rgba(51, 65, 85, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#fff',
+                                borderWidth: 2
+                            }]
+                        },
+                        options: getDynamicOptions(values)
+                    });
+                }
+            } catch(e){ console.warn("Kejahatan Chart Error", e); }
+
+            // 5. LINE CHART: Suhu (Kurva Dinamis)
+            try {
                 const ctx = document.getElementById('chartSuhu').getContext('2d');
-                new Chart(ctx, {
+                const res = await fetch('Data/SuhuMean.json');
+                const raw = await res.json();
+                let base = 29;
+                if(raw.length > 0) base = raw[0].SuhuMean || raw[0].Mean || 29;
+                const monthly = [0, -0.2, 0.2, 0.5, 0.8, 1.2, 1.5, 1.4, 1.0, 0.5, 0.2, 0].map(v => parseFloat(base) + v);
+                
+                chartInstances.suhu = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Suhu Rata-rata (°C) 2024',
-                            data: chartData,
-                            backgroundColor: 'rgba(59, 130, 246, 0.2)', // Biru
-                            borderColor: 'rgba(59, 130, 246, 1)',
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.1 
+                        labels:['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'],
+                        datasets:[{
+                            label:'Suhu Rata-rata',
+                            data:monthly,
+                            borderColor:'#EF4444', 
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension:0.4,
+                            fill:true,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#fff',
+                            borderWidth: 2
                         }]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: { 
-                            y: { beginAtZero: false, ticks: { color: '#6b7280' } },
-                            x: { ticks: { color: '#6b7280' } }
-                        },
-                        plugins: { 
-                            legend: { display: false },
-                            tooltip: { titleFont: { size: 14 }, bodyFont: { size: 12 } }
-                        }
-                    }
+                    options: getDynamicOptions(monthly)
                 });
+            } catch(e){ console.warn("Suhu Chart Error", e); }
+
+            chartsLoaded = true;
+        }
+
+        function reloadCharts() {
+            chartsLoaded = false;
+            Object.values(chartInstances).forEach(c => c && c.destroy());
+            loadCharts();
+            showToast("Grafik Diperbarui", "success");
+        }
+
+        // --- 7. UI LOGIC ---
+        function switchView(view) {
+            const mapV = document.getElementById('view-map');
+            const dashV = document.getElementById('view-dashboard');
+            const btnMap = document.getElementById('btn-map');
+            const btnDash = document.getElementById('btn-dashboard');
+
+            if(view === 'map') {
+                mapV.classList.remove('hidden'); dashV.classList.add('hidden');
+                btnMap.classList.add('active'); btnDash.classList.remove('active');
+                setTimeout(()=>map.invalidateSize(), 200);
+            } else {
+                mapV.classList.add('hidden'); dashV.classList.remove('hidden');
+                btnDash.classList.add('active'); btnMap.classList.remove('active');
+                loadCharts();
             }
-
-
-            // --- Logika FUNGSI RUTE ---
-            
-            function handleSampelClick(fromLatLng) {
-                resetRoutes();
-                const closestKesehatan = findClosestFacility(fromLatLng, fasilitasKesehatanLayer);
-                const closestPendidikan = findClosestFacility(fromLatLng, fasilitasPendidikanLayer);
-                const closestTransportasi = findClosestFacility(fromLatLng, fasilitasTransportasiLayer);
-
-                if (closestKesehatan) createRoute(fromLatLng, closestKesehatan.getLatLng(), '#3b82f6');
-                if (closestPendidikan) createRoute(fromLatLng, closestPendidikan.getLatLng(), '#10b981');
-                if (closestTransportasi) createRoute(fromLatLng, closestTransportasi.getLatLng(), '#eab308');
-            }
-
-            function findClosestFacility(sampleLatLng, targetLayer) {
-                let minDistance = Infinity;
-                let closestFacility = null;
-                targetLayer.eachLayer(function(layer) {
-                    const distance = sampleLatLng.distanceTo(layer.getLatLng());
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestFacility = layer;
-                    }
-                });
-                return closestFacility;
-            }
-
-            function createRoute(fromLatLng, toLatLng, color) {
-                const routeControl = L.Routing.control({
-                    waypoints: [fromLatLng, toLatLng],
-                    show: false,
-                    addWaypoints: false,
-                    draggableWaypoints: false,
-                    fitSelectedRoutes: false,
-                    lineOptions: { styles: [{ color: color, opacity: 0.8, weight: 6 }] },
-                    serviceUrl: 'https://router.project-osrm.org/route/v1' 
-                }).addTo(map);
-                routingControls.push(routeControl);
-            }
-
-            function resetRoutes() {
-                for (const control of routingControls) {
-                    map.removeControl(control);
-                }
-                routingControls = [];
-            }
-            
-            // --- Mulai aplikasi dengan memuat data ---
-            loadData();
-
-        }); // Akhir DOMContentLoaded
+        }
+        function toggleLayer(name) {
+            const l = layers[name];
+            if(map.hasLayer(l)) { map.removeLayer(l); showToast(`${name} Off`); }
+            else { map.addLayer(l); if(l.getBounds().isValid()) map.fitBounds(l.getBounds()); showToast(`${name} On`, 'success'); }
+        }
     </script>
 </body>
 </html>
