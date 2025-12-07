@@ -81,20 +81,28 @@
             <div class="mt-8">
                 <p class="px-3 text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider">Layer Peta</p>
                 <div class="px-3 space-y-3 text-sm text-slate-600">
-                    <div class="flex items-center cursor-pointer hover:text-blue-600 transition" onclick="toggleLayer('batas')">
-                        <span class="w-3 h-3 rounded-full border border-blue-500 bg-blue-100 mr-3"></span> Batas Kelurahan
+                    <!-- 1. Batas Kelurahan (PINK) -->
+                    <div class="flex items-center cursor-pointer hover:text-pink-600 transition" onclick="toggleLayer('batas')">
+                        <span class="w-3 h-3 rounded-full border border-pink-500 bg-pink-100 mr-3" style="border-width: 2px;"></span> Batas Kelurahan
                     </div>
+                    <!-- 2. Nilai Bidang Tanah (Choropleth/Orange-Red) -->
                     <div class="flex items-center cursor-pointer hover:text-orange-600 transition" onclick="toggleLayer('nbt')">
-                        <span class="w-3 h-3 rounded-full bg-orange-500 mr-3"></span> Nilai Bidang Tanah
+                        <span class="w-3 h-3 rounded-full bg-gradient-to-br from-yellow-300 to-red-600 mr-3 border border-gray-300"></span> Nilai Bidang Tanah
                     </div>
+                    <!-- 3. Zona Nilai Tanah (Hijau Transparan) -->
                     <div class="flex items-center cursor-pointer hover:text-green-600 transition" onclick="toggleLayer('znt')">
-                        <span class="w-3 h-3 rounded-full bg-green-500 mr-3"></span> Zona Nilai Tanah
+                        <span class="w-3 h-3 rounded-full bg-green-500 bg-opacity-50 mr-3 border border-green-600"></span> Zona Nilai Tanah
                     </div>
+                    <!-- 4. Jaringan Jalan (Abu Gelap) -->
                     <div class="flex items-center cursor-pointer hover:text-gray-700 transition" onclick="toggleLayer('jalan')">
-                        <span class="w-3 h-3 rounded-full bg-gray-700 mr-3"></span> Jaringan Jalan
+                        <span class="w-3 h-3 rounded-full bg-gray-700 mr-3 border border-gray-800"></span> Jaringan Jalan
                     </div>
+                    <!-- 5. Titik Sampel & Rute (Ungu/Merah Titik) -->
                     <div class="flex items-center cursor-pointer hover:text-purple-600 transition mt-4 pt-4 border-t" onclick="toggleLayer('analisis')">
-                        <span class="w-3 h-3 rounded-full bg-purple-500 mr-3"></span> Titik Sampel & Rute
+                        <div class="relative w-3 h-3 mr-3">
+                            <span class="absolute w-3 h-3 rounded-full bg-red-600 border border-white"></span>
+                        </div>
+                        Titik Sampel & Rute
                     </div>
                 </div>
             </div>
@@ -169,7 +177,10 @@
             el.appendChild(toast);
             setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(),300); }, 3000);
         }
-        function formatRupiah(num) { return new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(num); }
+        function formatRupiah(num) { 
+            if(num === null || num === undefined || isNaN(num)) return "Rp 0";
+            return new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(num); 
+        }
 
         // --- 2. MAP SETUP & RESET CONTROL ---
         const initialView = { lat: -7.575, lng: 110.825, zoom: 14 }; 
@@ -202,11 +213,12 @@
             showToast("Peta di-reset ke awal", "info");
         }
 
-        // Z-INDEX PANE (PENTING AGAR BATAS MUNCUL DI ATAS)
+        // Z-INDEX PANE (URUTAN LAYER)
+        // Semakin kecil angka, semakin bawah layer digambar
+        map.createPane('paneBatas').style.zIndex = 350; // PALING BAWAH
         map.createPane('paneZNT').style.zIndex = 400; 
         map.createPane('paneNBT').style.zIndex = 450;
-        map.createPane('paneJalan').style.zIndex = 490;
-        map.createPane('paneBatas').style.zIndex = 500; // Paling atas sebelum label/titik
+        map.createPane('paneJalan').style.zIndex = 490; // Di atas polygon, di bawah titik
 
         // --- 3. SYMBOLOGY ---
         const grades = [4000000, 5250000, 6500000, 7500000, 9000000, 12000000, 15000000, 23000000];
@@ -217,7 +229,7 @@
         const legend = L.control({position: 'bottomright'});
         legend.onAdd = function (map) {
             const div = L.DomUtil.create('div', 'legend');
-            div.innerHTML = '<h4>Harga Tanah / m²</h4>';
+            div.innerHTML = '<h4>NBT / m²</h4>';
             for (let i=0; i<grades.length; i++) div.innerHTML += `<div class="legend-row"><i style="background:${getColor(grades[i])}"></i><span class="legend-label">&lt; ${formatRupiah(grades[i])}</span></div>`;
             return div;
         };
@@ -246,22 +258,54 @@
                 const opts = {
                     onEachFeature: (f, l) => {
                         let content = `<div class="text-sm font-sans"><h4 class="font-bold border-b pb-1 mb-2 text-blue-600">${name}</h4><table class="w-full">`;
+                        
+                        // POPUP: Tampilkan Nilai Utama di Atas (displayField)
+                        if(valField && f.properties[valField] !== undefined) {
+                            let val = f.properties[valField];
+                            // Cek jika val adalah angka untuk diformat rupiah
+                            if (!isNaN(parseFloat(val))) val = formatRupiah(val);
+                            
+                            content += `<tr class="bg-blue-50"><td class="text-gray-600 text-xs uppercase font-bold py-1">${valField}</td><td class="font-bold text-blue-700 text-right">${val}</td></tr>`;
+                        }
+
                         let count=0;
-                        for(let k in f.properties){ if(count<6){ let v=f.properties[k]; if((k==='PREDICTED'||k===valField)&&v) v=formatRupiah(v); content+=`<tr><td class="text-gray-500 text-xs uppercase pr-2">${k}</td><td class="font-medium">${v}</td></tr>`; } count++; }
+                        for(let k in f.properties){ 
+                            if(count<6 && k !== valField){ // Jangan duplikat display field
+                                let v=f.properties[k]; 
+                                if(k==='PREDICTED' || k==='NBT') v=formatRupiah(v); // Auto format currency
+                                content+=`<tr><td class="text-gray-500 text-xs uppercase pr-2">${k}</td><td class="font-medium text-right">${v}</td></tr>`; 
+                            } 
+                            count++; 
+                        }
                         l.bindPopup(content+"</table></div>");
                     }
                 };
+                
                 if (paneName) opts.pane = paneName;
+                
                 opts.style = (f) => {
-                    if(valField && f.properties[valField]) return { fillColor: getColor(f.properties[valField]), weight:1, opacity:1, color:'white', dashArray:'3', fillOpacity:0.75 };
-                    return { color:'#3B82F6', weight:2, opacity:1, fillOpacity:0.05, dashArray:'5, 5' };
+                    let val = null;
+                    if (valField && f.properties[valField]) {
+                        val = f.properties[valField];
+                        // Auto-clean currency/string to number
+                        if (typeof val === 'string') val = parseInt(val.replace(/[^0-9]/g, ''), 10);
+                    }
+
+                    // Jika nilai valid, klasifikasikan warna
+                    if (val && !isNaN(val)) {
+                        return { fillColor: getColor(val), weight:1, opacity:1, color:'white', dashArray:'3', fillOpacity:0.75 };
+                    }
+                    
+                    // Fallback style (untuk ZNT yang sekarang jadi background)
+                    return { color:'#10b981', fillColor: '#10b981', weight:1, opacity:1, fillOpacity:0.15, dashArray:'' }; 
                 };
+
                 L.geoJSON(data, opts).addTo(layerGroup);
                 layerGroup.addTo(map);
             } catch(e) { console.error("Error load " + name, e); }
         }
 
-        // LOAD BATAS KELURAHAN SECARA EKSPLISIT
+        // LOAD BATAS KELURAHAN (STYLE BARU: PINK + FILL 15% + PANE PALING BAWAH)
         async function loadBatasKelurahan() {
             try {
                 const res = await fetch('Data/BatasKelurahan.geojson');
@@ -269,14 +313,14 @@
                 const data = await res.json();
                 L.geoJSON(data, {
                     style: {
-                        color: '#1e3a8a', // Biru gelap
-                        weight: 3,        // Tebal
+                        color: '#ff1493', // DeepPink Border
+                        weight: 3,        
                         opacity: 1,
-                        fillColor: 'transparent',
-                        fillOpacity: 0,
-                        dashArray: '5, 10' // Garis putus-putus
+                        fillColor: '#ff1493', // DeepPink Fill
+                        fillOpacity: 0.15,    // 15% Transparency
+                        dashArray: null       // Solid Line
                     },
-                    pane: 'paneBatas', // Penting! Z-Index tinggi
+                    pane: 'paneBatas', // Z-INDEX 350
                     onEachFeature: (f, l) => l.bindPopup(`<b>Batas Wilayah</b><br>${f.properties.NAMOBJ || 'Kelurahan'}`)
                 }).addTo(layers.batas);
                 layers.batas.addTo(map);
@@ -391,9 +435,14 @@
         }
 
         // EKSEKUSI
-        loadBatasKelurahan(); // Prioritas 1: Batas Wilayah
-        loadGeoJSON('Data/ZNTBARU_FeaturesToJSON.geojson', layers.znt, 'Zona Nilai', 'PREDICTED', 'paneZNT');
-        loadGeoJSON('Data/NBTLAYER_FeaturesToJSON.geojson', layers.nbt, 'Bidang Tanah', 'PREDICTED', 'paneNBT');
+        loadBatasKelurahan(); 
+        
+        // ZNT: Simple Style (valField = null) -> Background Hijau
+        loadGeoJSON('Data/ZNTBARU_FeaturesToJSON.geojson', layers.znt, 'Zona Nilai', null, 'paneZNT');
+        
+        // NBT: Classified Style -> Pass "NBT" sebagai valField
+        loadGeoJSON('Data/NBTLAYER_FeaturesToJSON.geojson', layers.nbt, 'Nilai Bidang Tanah', 'NBT', 'paneNBT');
+        
         loadRoadVisual();
         loadFacilityData('Data/Transportasi.geojson', layers.transport, 'transport');
         loadFacilityData('Data/Kesehatan.geojson', layers.kesehatan, 'kesehatan');
@@ -418,7 +467,52 @@
             const barOpts = { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} };
             const lineOpts = { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, interaction:{mode:'index',intersect:false}, scales:{y:{beginAtZero:false, grid:{borderDash:[2,4]}},x:{grid:{display:false}}} };
             const charts = [{id:'chartBidang', url:'Data/JumlahBidangTanah.json', type:'pie', opts:{responsive:true, maintainAspectRatio:false}}, {id:'chartNTZ', url:'Data/StatistikNTZ.json', type:'bar', opts:{...barOpts, indexAxis:'y'}, color:'#10B981'}, {id:'chartNTK', url:'Data/StatistikNTK.json', type:'bar', opts:barOpts, color:'#6366F1'}, {id:'chartKejahatan', url:'Data/Kejahatan.json', type:'bar', opts:barOpts, color:'#334155'}];
-            for(const c of charts) { try { const res = await fetch(c.url); const data = await res.json(); const {label,value} = detectKeys(data); if(label&&value) { const vals = c.type==='pie'?data.map(d=>d[value]):data.map(d=>cleanCurrency(d[value])); chartInstances[c.id] = new Chart(document.getElementById(c.id), {type:c.type, data:{labels:data.map(d=>d[label]), datasets:[{data:vals, backgroundColor:c.color||['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6']}]}, options:c.opts}); } } catch(e){} }
+            for(const c of charts) { try { const res = await fetch(c.url); const data = await res.json(); 
+                if(c.id === 'chartBidang') {
+                    // FILTER KHUSUS PIE CHART
+                    const {label, value} = detectKeys(data);
+                    const kelurahanValid = ["DANUKUSUMAN", "JAYENGAN", "JOYOTAKAN", "KEMLAYAN", "KRATONAN", "SERENGAN", "TIPES"];
+                    const filteredData = data.filter(d => {
+                        const l = d[label];
+                        return l && l !== "Total" && isNaN(l) && (kelurahanValid.includes(l.toUpperCase()) || l.length > 2); 
+                    });
+                    
+                    const vals = filteredData.map(d=>d[value]);
+                    chartInstances[c.id] = new Chart(document.getElementById(c.id), {
+                        type: c.type, 
+                        data: {
+                            labels: filteredData.map(d=>d[label]), 
+                            datasets: [{data: vals, backgroundColor: c.color||['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#6366F1']}]
+                        }, 
+                        options: {
+                            ...c.opts,
+                            plugins: {
+                                ...c.opts.plugins,
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            let value = context.parsed;
+                                            let total = context.chart._metasets[context.datasetIndex].total;
+                                            let percentage = (value / total * 100).toFixed(1) + '%';
+                                            return label + value + ' (' + percentage + ')';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    const {label, value} = detectKeys(data);
+                    if(label&&value) {
+                        const vals = c.type==='pie'?data.map(d=>d[value]):data.map(d=>cleanCurrency(d[value])); 
+                        chartInstances[c.id] = new Chart(document.getElementById(c.id), {type:c.type, data:{labels:data.map(d=>d[label]), datasets:[{data:vals, backgroundColor:c.color||['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6']}]}, options:c.opts});
+                    }
+                }
+            } catch(e){} }
             try { const res=await fetch('Data/SuhuMean.json'); const r=await res.json(); let b=29; if(r.length>0) b=r[0].SuhuMean||29; chartInstances.suhu=new Chart(document.getElementById('chartSuhu'),{type:'line',data:{labels:['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'],datasets:[{label:'Suhu',data:[0,-0.2,0.2,0.5,0.8,1.2,1.5,1.4,1,0.5,0.2,0].map(v=>parseFloat(b)+v),borderColor:'#EF4444',tension:0.4,fill:true}]},options:lineOpts}); } catch(e){}
             chartsLoaded = true;
         }
